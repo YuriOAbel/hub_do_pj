@@ -1,0 +1,12 @@
+---
+description: Router for Supabase SQL migrations.
+globs: supabase/migrations/**/*.sql
+alwaysApply: false
+---
+
+# Rule: Supabase Migrations Router
+
+- If touching `supabase/migrations/**`, read and follow
+  `.cursor/skills/supabase-migrations/SKILL.md`.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

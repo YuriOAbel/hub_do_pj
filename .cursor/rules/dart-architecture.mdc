@@ -1,0 +1,12 @@
+---
+description: Global router for Dart/Flutter architecture.
+globs: "**/*.dart"
+alwaysApply: true
+---
+
+# Rule: Dart Architecture Router
+
+- For any Dart change, read and follow
+  `.cursor/skills/dart-architecture/SKILL.md`.
+- If another rule conflicts, architecture takes precedence.
+- Source of truth: skill.

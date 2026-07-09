@@ -1,0 +1,16 @@
+---
+description: Router for UI/theming, fonts, colors, and responsiveness.
+globs:
+  - lib/presentation/**/*.dart
+  - lib/theme/**/*.dart
+alwaysApply: false
+---
+
+# Rule: Theming Router
+
+- If touching UI/theming/fonts/colors/sizing, read and follow
+  `.cursor/skills/theming/SKILL.md`.
+- Default type scale: **16pt** titles, **14pt** subtitles, **12pt** body
+  (`AppTypography.fontTitle` / `fontSubtitle` / `fontBody`).
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

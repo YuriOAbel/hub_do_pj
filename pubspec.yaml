@@ -1,0 +1,60 @@
+name: consulta_cnpj_new
+description: Consulta CNPJ — cadastral lookup for Brazilian companies.
+publish_to: 'none'
+version: 4.0.0+50
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+  google_fonts: ^6.2.1
+  sizer: ^3.0.5
+  flutter_svg: ^2.0.17
+  auto_size_text: ^3.0.0
+  loading_animation_widget: ^1.3.0
+  carousel_slider: ^5.0.0
+  flutter_rating_bar: ^4.0.1
+  dio: ^5.8.0+1
+  cpf_cnpj_validator: ^2.0.0
+  mask_text_input_formatter: ^2.9.0
+  shared_preferences: ^2.5.3
+  path_provider: ^2.1.5
+  url_launcher: ^6.3.1
+  share_plus: ^10.1.4
+  maps_launcher: ^3.0.0+1
+  printing: ^5.14.2
+  pdf: ^3.12.0
+  screenshot: ^3.0.0
+  in_app_review: ^2.0.10
+  permission_handler: ^11.4.0
+  firebase_core: ^3.13.0
+  firebase_analytics: ^11.4.5
+  firebase_messaging: ^15.2.5
+  firebase_remote_config: ^5.4.3
+  purchases_flutter: ^8.6.1
+  flutter_contacts: ^1.1.9+2
+  intl: ^0.20.2
+  package_info_plus: ^8.3.0
+  currency_text_input_formatter: ^2.2.9
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.15
+  freezed: ^2.5.8
+  json_serializable: ^6.9.4
+  riverpod_generator: ^2.6.4
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/config/

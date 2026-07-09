@@ -1,0 +1,12 @@
+---
+description: Router for creating/editing domain models.
+globs: lib/domain/models/**/*.dart
+alwaysApply: false
+---
+# Rule: New Model Router
+
+- If creating/editing models in `lib/domain/models/**`, read and follow
+  `.cursor/skills/new-model/SKILL.md`.
+- Apply `.cursor/rules/dart-architecture.mdc`.
+- For Remote Config rules, apply `.cursor/rules/remote-config.mdc`.
+- Source of truth: skill.

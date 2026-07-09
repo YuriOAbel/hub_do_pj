@@ -1,0 +1,13 @@
+---
+description: Router for Supabase Functions, Storage, and integrations.
+globs: supabase/**/*.ts
+alwaysApply: false
+---
+
+# Rule: Supabase Router
+
+- If touching `supabase/functions/**`, read and follow
+  `.cursor/skills/supabase/SKILL.md`.
+- Dependencies: `.cursor/rules/database-requests.mdc` and
+  `.cursor/rules/supabase-migrations.mdc`.
+- Source of truth: skill.

@@ -1,0 +1,153 @@
+# CNPJ Consulta — project context
+
+## ⚠️ PRIORITY 0: CAVEMAN PROTOCOL ⚠️
+**Always apply the Caveman principles before, during, and after any task.** The Caveman rules govern AI behavior, efficiency, and code generation across the entire project. All other architecture rules and skills must inherit from and comply with this foundation.
+
+## Product context
+
+App Overview: CNPJ Consulta is an iOS and Android mobile app for cadastral lookup of Brazilian companies (CNPJ). Rebuilt from the legacy `consulta_cnpj` project with the same product intent and visual identity, but using the architecture defined in this repo.
+
+Core Functionality:
+- CNPJ search: lookup by number via ReceitaWS API.
+- Name search: lookup by razão social / nome fantasia via ASW API (`api.consultarempresas.com.br`).
+- Company detail: address, CNAEs, partners (QSA), contacts, situation.
+- History and favorites: local persistence (SharedPreferences).
+- Premium subscription: RevenueCat entitlement `premium` — unlimited search, favorites, PDF share, maps, contact actions.
+- Extras: advanced search (Remote Config gated), prospecting calculator, refer-a-friend, app evaluation, financial cards, restriction notification topic.
+
+Data Strategy: **Current phase:** direct HTTP services (ReceitaWS + ASW API) with singleton services abstracting I/O. Local state via SharedPreferences. Firebase for Analytics, Remote Config, and FCM. RevenueCat for subscriptions. **Future:** migrate APIs to Supabase Edge Functions; ads (Wortise/AdMob) in a later phase.
+
+Monetization (MVP): RevenueCat only. No interstitial/banner ads yet. Premium gates via `PremiumUpsellSheet` → paywall.
+
+---
+
+## Mandatory: read before implementation
+
+Before writing or modifying code in this project, read the matching rule in `.cursor/rules/` for the task.
+Rules are lightweight routers; detailed implementation guidance lives in `.cursor/skills/`.
+
+| Task | Rule file (`.cursor/rules/`) | Skill file (`.cursor/skills/`) |
+|---|---|---|
+| Any Dart/Flutter implementation (layers, DRY / reuse) | `dart-architecture.mdc` | `dart-architecture/SKILL.md` |
+| Creating or modifying a screen | `new-screen.mdc` | `new-screen/SKILL.md` |
+| Creating or modifying a model | `new-model.mdc` | `new-model/SKILL.md` |
+| Creating or modifying a service | `new-service.mdc` | `new-service/SKILL.md` |
+| Any UI work (fonts, colors, sizing) | `theming.mdc` | `theming/SKILL.md` |
+| Widget lists (`if`/`else` vs ternary), locals only when reused or conditional | `flutter-code-style.mdc` | `flutter-code-style/SKILL.md` |
+| Paywall, RevenueCat, or purchase flow | `paywall.mdc` | `payments-core/SKILL.md` |
+| Firebase Remote Config | `remote-config.mdc` | `remote-config/SKILL.md` |
+| Supabase Edge Functions or Storage | `supabase.mdc` | `supabase/SKILL.md` |
+| Creating or modifying a SQL migration (`supabase/migrations/`) | `supabase-migrations.mdc` | `supabase-migrations/SKILL.md` |
+| Data fetching / avoiding duplicate DB or PostgREST calls | `database-requests.mdc` | `database-requests/SKILL.md` |
+| Firebase Analytics events (registry, new `eventKey`, helper methods) | `analytics-events.mdc` | `analytics-events/SKILL.md` |
+| Writing or running Maestro E2E tests (when explicitly requested) | `maestro-testing.mdc` | `maestro-testing/SKILL.md` |
+| Subscriptions / payments (RevenueCat) | — | `payments-core/SKILL.md` |
+
+These rules define the non-negotiable architecture and patterns of this project. **The architecture must never be broken.** If a request would require violating a rule, say so explicitly and propose a compliant alternative.
+
+> **Note:** Some skill examples reference other domains (Contract Easy, sticker album, card scanning). Apply only the **patterns** (layers, Riverpod, Freezed, theming, services); ignore domain-specific file names unless they exist in this repo.
+
+---
+
+## Evolving rules
+
+If you identify a new pattern or standard that would help the project and is not documented yet, confirm with the user before adding it. Once confirmed:
+
+- New or updated architecture standards → `.cursor/rules/` (router) + `.cursor/skills/` (detailed guidance)
+- New task-specific patterns → `.cursor/skills/<topic>/SKILL.md` and matching `.cursor/rules/<topic>.mdc`
+- Update the reference table above when adding a new rule/skill pair.
+
+---
+
+## Commands
+
+```bash
+# Install dependencies
+flutter pub get
+
+# Code generation (required after changing Freezed models or adding JSON serialization)
+dart run build_runner build --delete-conflicting-outputs
+
+# Run the app
+flutter run
+
+# Run with RevenueCat (production / sandbox)
+flutter run --dart-define=RC_API_KEY=your_key
+
+# Lint / static analysis
+flutter analyze
+
+# Analytics registry (run after changing analytics_events.json or FirebaseAnalyticsHelper)
+flutter test test/analytics_events_registry_test.dart
+
+# Deploy a Supabase Edge Function (future backend migration)
+supabase functions deploy <function-name> --no-verify-jwt
+supabase secrets set KEY=value
+```
+
+---
+
+## Project structure
+
+```
+lib/
+├── core/                    # Global config, utilities
+│   ├── helpers/             # FirebaseAnalyticsHelper
+│   └── utils/               # AppTypography, DeviceScaleUtils
+├── domain/
+│   ├── models/              # Freezed models (CnpjModel, NomeModel, etc.)
+│   └── providers/           # Riverpod @riverpod notifiers
+├── presentation/            # Feature screens + local widgets
+│   ├── splash_screen/
+│   ├── location_permission_screen/
+│   ├── home_screen/         # Search, banners, historic/favorites tabs
+│   ├── result_screen/       # Company detail (4 tabs)
+│   ├── paywall_screen/
+│   ├── search_advanced_screen/
+│   ├── calculator_screen/
+│   ├── refer_friend_screen/
+│   ├── evaluation_screen/
+│   ├── not_available_screen/
+│   ├── financial_cards_screen/
+│   └── shared/widgets/      # CnpjPrimaryButton, PremiumUpsellSheet, etc.
+├── services/                # Singleton I/O (HTTP, Firebase, RevenueCat, local storage)
+├── routes/                  # AppRoutes — named routes with typed args
+├── theme/                   # app_theme.dart + cupertino_theme.dart
+└── main.dart
+
+assets/
+├── icons/                   # SVG icons (from legacy app)
+├── images/                  # SVG illustrations
+└── config/                  # design.json, remote_config.json, analytics_events.json
+
+docs/
+└── IOS_SETUP.md             # iOS manual setup checklist
+
+supabase/                    # Future backend (not yet in use)
+└── functions/
+```
+
+---
+
+## Navigation
+
+Named routes only via `AppRoutes`. Pass arguments as typed objects (`CnpjModel`, `PaywallOrigin`, `SearchParam`, etc.). Never navigate with raw strings or anonymous routes.
+
+Key routes: `/`, `/home`, `/result`, `/paywall`, `/search-advanced`, `/calculator`, `/refer-friend`, `/evaluation`, `/not-available`, `/financial-cards`.
+
+---
+
+## External APIs
+
+| Service | Base URL | Usage |
+|---|---|---|
+| ReceitaWS | `https://www.receitaws.com.br/v1/` | GET `cnpj/{digits}` |
+| ASW | `http://api.consultarempresas.com.br:8888/` | Name search, financial cards |
+
+iOS requires ATS exception for ASW HTTP endpoint (see `docs/IOS_SETUP.md`).
+
+---
+
+## Efficiency
+
+Scope prompts precisely (e.g. review one file or feature instead of the whole app). Less context loaded means fewer tokens and clearer answers.

@@ -1,0 +1,14 @@
+---
+description: Router for Flutter UI code style.
+globs:
+  - lib/presentation/**/*.dart
+  - lib/theme/**/*.dart
+alwaysApply: false
+---
+
+# Rule: Flutter code style router
+
+- If touching widget trees in `lib/presentation/**` or `lib/theme/**`,
+  read and follow `.cursor/skills/flutter-code-style/SKILL.md`.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

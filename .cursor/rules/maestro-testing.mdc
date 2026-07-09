@@ -1,0 +1,13 @@
+---
+description: Router for Maestro E2E tests and Semantics.
+globs: maestro/**/*
+alwaysApply: false
+---
+
+# Rule: Maestro Testing Router
+
+- If creating/editing/running Maestro flows, read and follow
+  `.cursor/skills/maestro-testing/SKILL.md`.
+- Semantics requirements are also defined in this skill.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

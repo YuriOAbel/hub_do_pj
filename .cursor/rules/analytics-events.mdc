@@ -1,0 +1,15 @@
+---
+description: Router for Firebase analytics event changes.
+globs:
+  - "lib/core/helpers/firebase_analytics_helper.dart"
+  - "assets/config/analytics_events.json"
+  - "lib/services/firebase_service.dart"
+alwaysApply: false
+---
+
+# Rule: Analytics events router
+
+- If touching analytics files, read and follow
+  `.cursor/skills/analytics-events/SKILL.md`.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

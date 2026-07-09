@@ -1,0 +1,16 @@
+---
+description: Router for paywall, RevenueCat, and purchase/restore flows.
+globs:
+  - "**/*paywall*.dart"
+  - "**/recovery_offer*.dart"
+alwaysApply: false
+---
+
+# Rule: Paywall Router
+
+- If touching paywall/plans/purchase/restore/recovery, read and follow
+  `.cursor/skills/paywall/SKILL.md`.
+- Dependencies: `.cursor/rules/theming.mdc`,
+  `.cursor/rules/remote-config.mdc`,
+  `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

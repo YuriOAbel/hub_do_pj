@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "894074953486",
+    "firebase_url": "https://consulta-cnpj-1196c.firebaseio.com",
+    "project_id": "consulta-cnpj-1196c",
+    "storage_bucket": "consulta-cnpj-1196c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:894074953486:android:c5f731d097e0c0e777c15f",
+        "android_client_info": {
+          "package_name": "br.com.cgy.consulta_cnpj_empresas"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "894074953486-vjt373v9ipakq2t2qoq2o0kuiaqjcdn9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBfqtCtitG5vjRVjlZyZXXKAOiD-sReko"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "894074953486-vjt373v9ipakq2t2qoq2o0kuiaqjcdn9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

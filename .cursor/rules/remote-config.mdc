@@ -1,0 +1,14 @@
+---
+description: Router for typed Firebase Remote Config.
+globs:
+  - lib/services/firebase*.dart
+  - assets/config/**/*.json
+alwaysApply: false
+---
+
+# Rule: Remote Config Router
+
+- If touching Remote Config keys/defaults/parsing, read and follow
+  `.cursor/skills/remote-config/SKILL.md`.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

@@ -1,0 +1,36 @@
+{
+  "configs": {
+    "activate_smartlook": {
+      "type": "boolean",
+      "default": false
+    },
+    "prospecting": {
+      "type": "boolean",
+      "default": false
+    },
+    "restriction": {
+      "type": "boolean",
+      "default": false
+    },
+    "search_advanced": {
+      "type": "boolean",
+      "default": false
+    },
+    "enable_banner": {
+      "type": "boolean",
+      "default": false
+    },
+    "enable_search_named": {
+      "type": "boolean",
+      "default": true
+    },
+    "banners": {
+      "type": "string",
+      "default": "{\"imgs\":[]}"
+    },
+    "seconds_ads": {
+      "type": "number",
+      "default": 60
+    }
+  }
+}

@@ -1,0 +1,13 @@
+---
+description: Router for creating/editing services.
+globs: lib/services/**/*.dart
+alwaysApply: false
+---
+
+# Rule: New Service Router
+
+- If creating/editing services in `lib/services/**`, read and follow
+  `.cursor/skills/new-service/SKILL.md`.
+- Dependencies: `.cursor/rules/dart-architecture.mdc`; for data access,
+  `.cursor/rules/database-requests.mdc`.
+- Source of truth: skill.

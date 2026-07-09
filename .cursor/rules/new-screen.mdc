@@ -1,0 +1,12 @@
+---
+description: Router for creating/refactoring screens.
+globs: lib/presentation/**/*.dart
+alwaysApply: false
+---
+# Rule: New Screen Router
+
+- If creating/refactoring screens in `lib/presentation/**`, read and follow
+  `.cursor/skills/new-screen/SKILL.md`.
+- Dependencies: `.cursor/rules/dart-architecture.mdc`,
+  `.cursor/rules/theming.mdc`, `.cursor/rules/maestro-testing.mdc`.
+- Source of truth: skill.

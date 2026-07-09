@@ -1,0 +1,19 @@
+{
+  "colors": {
+    "background": "#FBFBFB",
+    "surface": "#FFFFFF",
+    "primary": "#9969D3",
+    "primaryDark": "#794EAD",
+    "primaryAccent": "#B57CFA",
+    "textPrimary": "#383838",
+    "textSecondary": "#888888",
+    "textMuted": "#373435",
+    "error": "#EE3033",
+    "warning": "#FEA929",
+    "success": "#2DA748",
+    "premiumCard": "#5BB25F",
+    "splash": "#8446CD",
+    "shadowLight": "#E6E6E6",
+    "shadowDark": "#9EA1A5"
+  }
+}

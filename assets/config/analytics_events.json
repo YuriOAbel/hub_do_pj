@@ -1,0 +1,99 @@
+{
+  "events": {
+    "pesquisou_cnpj": {
+      "name": "pesquisou_cnpj",
+      "description": "User searched by CNPJ",
+      "parameters": []
+    },
+    "pesquisou_razao": {
+      "name": "pesquisou_razao",
+      "description": "User searched by company name",
+      "parameters": []
+    },
+    "sucesso_pesquisou_cnpj": {
+      "name": "sucesso_pesquisou_cnpj",
+      "description": "CNPJ search succeeded",
+      "parameters": []
+    },
+    "sucesso_pesquisou_razao": {
+      "name": "sucesso_pesquisou_razao",
+      "description": "Name search succeeded",
+      "parameters": []
+    },
+    "favorito": {
+      "name": "favorito",
+      "description": "User toggled favorite",
+      "parameters": []
+    },
+    "compartilhou": {
+      "name": "compartilhou",
+      "description": "User shared CNPJ PDF",
+      "parameters": []
+    },
+    "abriu_maps": {
+      "name": "abriu_maps",
+      "description": "User opened maps",
+      "parameters": []
+    },
+    "consultou_historico": {
+      "name": "consultou_historico",
+      "description": "User opened history item",
+      "parameters": []
+    },
+    "consultou_favorito": {
+      "name": "consultou_favorito",
+      "description": "User opened favorite item",
+      "parameters": []
+    },
+    "consulta_avancada": {
+      "name": "consulta_avancada",
+      "description": "User opened advanced search",
+      "parameters": []
+    },
+    "contato": {
+      "name": "contato",
+      "description": "User opened contact actions",
+      "parameters": []
+    },
+    "telefone": {
+      "name": "telefone",
+      "description": "User tapped phone action",
+      "parameters": []
+    },
+    "enviar_email": {
+      "name": "enviar_email",
+      "description": "User tapped email action",
+      "parameters": []
+    },
+    "whats": {
+      "name": "whats",
+      "description": "User tapped WhatsApp action",
+      "parameters": []
+    },
+    "abriu_page_premium": {
+      "name": "abriu_page_premium",
+      "description": "User opened paywall screen",
+      "parameters": []
+    },
+    "comprou_page_premium": {
+      "name": "comprou_page_premium",
+      "description": "User completed premium purchase",
+      "parameters": []
+    },
+    "clicou_desbloqueio_premium": {
+      "name": "clicou_desbloqueio_premium",
+      "description": "User tapped premium upsell",
+      "parameters": []
+    },
+    "avaliou": {
+      "name": "avaliou",
+      "description": "User submitted app evaluation",
+      "parameters": []
+    },
+    "salvar_prospecacao": {
+      "name": "salvar_prospecacao",
+      "description": "User saved prospecting calc",
+      "parameters": []
+    }
+  }
+}
