@@ -6,7 +6,7 @@ part of 'premium_status_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$premiumStatusHash() => r'91b1f5aaf71a0a17d237f9c7ed1d70528808fcda';
+String _$premiumStatusHash() => r'ce729ac601f1687dad6b439ec9f00b91541174b9';
 
 /// See also [PremiumStatus].
 @ProviderFor(PremiumStatus)

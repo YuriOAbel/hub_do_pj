@@ -12,8 +12,9 @@ class ResultHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(4.w),
-      padding: EdgeInsets.all(4.w),
+      width: double.infinity,
+      margin: EdgeInsets.fromLTRB(3.w, 1.h, 3.w, 1.h),
+      padding: EdgeInsets.fromLTRB(2.5.w, 1.5.h, 3.w, 1.5.h),
       decoration: BoxDecoration(
         color: AppTheme.background,
         borderRadius: BorderRadius.circular(12),
@@ -26,10 +27,11 @@ class ResultHeaderCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             cnpj.nome ?? '',
+            textAlign: TextAlign.left,
             style: GoogleFonts.inter(
               fontSize: 16.sp,
               fontWeight: FontWeight.w700,
@@ -38,13 +40,15 @@ class ResultHeaderCard extends StatelessWidget {
           ),
           SizedBox(height: 0.5.h),
           Text(
-            'CNPJ: ${cnpj.cnpj ?? ''}',
+            cnpj.cnpj ?? '',
+            textAlign: TextAlign.left,
             style: GoogleFonts.inter(fontSize: 13.sp, color: AppTheme.textSecondary),
           ),
           if (cnpj.situacao != null) ...[
             SizedBox(height: 0.5.h),
             Text(
               'Situação: ${cnpj.situacao}',
+              textAlign: TextAlign.left,
               style: GoogleFonts.inter(
                 fontSize: 13.sp,
                 color: AppTheme.success,

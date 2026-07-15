@@ -3,7 +3,7 @@
     "project_number": "894074953486",
     "firebase_url": "https://consulta-cnpj-1196c.firebaseio.com",
     "project_id": "consulta-cnpj-1196c",
-    "storage_bucket": "consulta-cnpj-1196c.appspot.com"
+    "storage_bucket": "consulta-cnpj-1196c.firebasestorage.app"
   },
   "client": [
     {
@@ -13,12 +13,7 @@
           "package_name": "br.com.cgy.consulta_cnpj_empresas"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "894074953486-vjt373v9ipakq2t2qoq2o0kuiaqjcdn9.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
           "current_key": "AIzaSyBBfqtCtitG5vjRVjlZyZXXKAOiD-sReko"
@@ -26,14 +21,10 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "894074953486-vjt373v9ipakq2t2qoq2o0kuiaqjcdn9.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
-      }
+      },
+      "admob_app_id": "ca-app-pub-4966404553667877~6697915180"
     }
   ],
   "configuration_version": "1"

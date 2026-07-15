@@ -1,0 +1,82 @@
+{
+  "packageId": "p01",
+  "packageName": "Pacote Completo",
+  "whatsappNumber": "5548996498239",
+  "defaultKind": "cnd",
+  "products": [
+    {
+      "id": "p01",
+      "kind": "cnd",
+      "name": "Pacote Completo",
+      "shortLabel": "Certidões",
+      "priceCents": 4999
+    },
+    {
+      "id": "prot01",
+      "kind": "protesto",
+      "name": "Consulta de Protesto",
+      "shortLabel": "Protesto",
+      "priceCents": 6999
+    },
+    {
+      "id": "rest01",
+      "kind": "restricao",
+      "name": "Consulta de Restrição",
+      "shortLabel": "Restrição",
+      "priceCents": 6999
+    }
+  ],
+  "certificates": [
+    {
+      "id": "c05",
+      "slug": "negativa-debitos-trabalhistas",
+      "name": "Negativa de débitos trabalhistas"
+    },
+    {
+      "id": "c04",
+      "slug": "regularidade-fgts",
+      "name": "Certificado de Regularidade do FGTS (CRF)"
+    },
+    {
+      "id": "c08",
+      "slug": "regularidade-fiscal",
+      "name": "Certidão de Regularidade Fiscal"
+    },
+    {
+      "id": "c09",
+      "slug": "inscricao-cadastral-receita",
+      "name": "Comprovante de Inscrição e de Situação Cadastral (Receita Federal)"
+    },
+    {
+      "id": "c10",
+      "slug": "certificado-mei",
+      "name": "Certificado da Condição de Microempreendedor Individual (MEI)",
+      "subtitle": "Disponível apenas para MEIs"
+    },
+    {
+      "id": "c11",
+      "slug": "inscricao-cadastral-junta",
+      "name": "Comprovante de Inscrição e de Situação Cadastral (Junta Comercial)"
+    },
+    {
+      "id": "c12",
+      "slug": "opcao-simples-nacional",
+      "name": "Comprovante de Opção pelo Simples Nacional"
+    },
+    {
+      "id": "c13",
+      "slug": "negativa-correcional-epad",
+      "name": "Certidão Negativa Correcional — Entes Privados (ePAD)"
+    },
+    {
+      "id": "c14",
+      "slug": "infracoes-trabalhistas",
+      "name": "Certidão de Infrações Trabalhistas"
+    },
+    {
+      "id": "c15",
+      "slug": "negativa-contas-julgadas",
+      "name": "Certidão Negativa de Contas Julgadas Irregulares"
+    }
+  ]
+}

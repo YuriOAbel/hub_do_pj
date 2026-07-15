@@ -12,14 +12,14 @@ class ShareAppService {
   static const _appStoreUrl = 'https://apps.apple.com/app/id0000000000';
 
   /// Fallback origin required by iOS/iPadOS share sheet.
-  static const _fallbackOrigin = Rect.fromLTWH(0, 0, 1, 1);
+  static const fallbackOrigin = Rect.fromLTWH(0, 0, 1, 1);
 
   String get storeUrl => Platform.isIOS ? _appStoreUrl : _playStoreUrl;
 
   Future<void> shareApp({Rect? sharePositionOrigin}) async {
     await Share.share(
       'Consulte CNPJs de empresas brasileiras! Baixe o app: $storeUrl',
-      sharePositionOrigin: sharePositionOrigin ?? _fallbackOrigin,
+      sharePositionOrigin: sharePositionOrigin ?? fallbackOrigin,
     );
   }
 }

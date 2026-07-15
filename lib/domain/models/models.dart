@@ -1,7 +1,16 @@
 export 'atividade_model.dart';
+export 'app_notification_model.dart';
 export 'banner_config_model.dart';
+export 'cnd_address_model.dart';
+export 'cnd_catalog_model.dart';
+export 'cnd_order_model.dart';
+export 'cnd_request_args.dart';
 export 'cnpj_model.dart';
+export 'company_score_model.dart';
 export 'financial_card_model.dart';
 export 'nome_model.dart';
+export 'notification_nav.dart';
+export 'onboarding_model.dart';
 export 'plan_model.dart';
+export 'result_route_args.dart';
 export 'search_param.dart';

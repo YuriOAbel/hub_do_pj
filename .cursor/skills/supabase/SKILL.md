@@ -1,6 +1,6 @@
-# Skill: Supabase
+# Skill: Supabase (Certidões PJ)
 
-Patterns for working with Supabase Edge Functions, Storage, and the database.
+Patterns for Edge Functions, Storage, and the Certidões PJ database. This repo is the **deploy anchor** for project `certidoes` (`kpkctuuzhbnqudemeudh`). See `docs/SUPABASE.md`.
 
 ---
 
@@ -8,270 +8,149 @@ Patterns for working with Supabase Edge Functions, Storage, and the database.
 
 | File | Role |
 |---|---|
-| `supabase/functions/_shared/market-contracts.ts` | Shared TypeScript interfaces |
-| `supabase/functions/_shared/price-analysis.ts` | Shared pricing utilities |
-| `supabase/functions/_shared/ebay-query-builder.ts` | Shared eBay query string builder + price range helper |
-| `supabase/functions/scan-card/index.ts` | Main orchestrator (production entry point) |
-| `supabase/functions/scan-card-dev/index.ts` | Dev copy — test changes here first |
-| `supabase/functions/analyze-card/index.ts` | GPT-4.1 vision analysis |
-| `supabase/functions/upload-images-temp/index.ts` | Storage ops (upload, signed URL, cleanup) |
-| `supabase/functions/ebay-api/index.ts` | eBay Browse API fetch |
-| `supabase/functions/ebay-api-inference/index.ts` | eBay filtering + pricing |
-| `supabase/functions/ebay-oauth-token/index.ts` | eBay OAuth 2.0 + DB token cache |
+| `supabase/config.toml` | CLI config; `project_id`; `pagarme-webhook` has `verify_jwt = false` |
+| `supabase/functions/create-order/index.ts` | Create order for authenticated user (requires `profiles.device_id`) |
+| `supabase/functions/create-pix-order/index.ts` | Create/reuse Pagar.me PIX charge for an order |
+| `supabase/functions/pagarme-webhook/index.ts` | Pagar.me webhook → update `payments` + `orders` |
+| `supabase/functions/sync-payment-status/index.ts` | Poll charge status (webhook lag fallback) |
+| `supabase/functions/send-marketing-emails/index.ts` | Bulk Resend sends from Storage `marketing` |
+| `supabase/migrations/*.sql` | Schema history (already applied remotely) |
 
 ---
 
-## Shared Contract
-
-All inference functions MUST return `MarketDataResponse`. Never break this contract.
-
-```typescript
-// supabase/functions/_shared/market-contracts.ts
-
-interface RecentSale {
-  id: string;
-  thumbnail: string;
-  title: string;
-  condition: string;
-  price: number;
-  saleDate: string;
-  url: string;
-  source: string;  // default: 'eBay'
-}
-
-interface MarketDataResponse {
-  recentSales: RecentSale[];
-  referencePriceMin: number;   // P20
-  referencePriceMax: number;   // P90
-  priceTrend: 'up' | 'down' | 'stable';
-}
-```
-
----
-
-## scan-card Orchestration Flow
+## Payment flow
 
 ```
-Mobile App (multipart/form-data, x-device-id header required)
+Flutter app (anonymous Supabase Auth + profiles.device_id)
+  ↓ POST create-order { productId, cnpj, companyName, guestEmail, address, guestPhone? }
+     Authorization: Bearer <user JWT>
+[create-order]
+  1. Resolve user from JWT
+  2. Require profiles.device_id for that user
+  3. Insert orders.user_id = user.id (service role); return camelCase order
+  ↓ (optional payment)
+  POST create-pix-order { orderId, guestEmail? }
+[create-pix-order]
+  1. Load order via service role
+  2. Reuse open PIX charge if still valid, else create Pagar.me order/charge
+  3. Persist payment row; return QR / copy-paste / expiresAt
   ↓
-[scan-card]
-  1. Validate x-device-id header
-  2. Rate limit: 30 scans/device/day (device_rate_limits table)
-  3. Parse images (image_front required, image_back optional; max 5 MB each)
-  4. POST → upload-images-temp  → signed URLs (120s TTL)
-  5. POST → analyze-card        → card JSON + queryEbay
-  6. eBay pipeline (USE_SCRAPPER_PIPELINE flag in scan-card/index.ts)
-  7. Build FinalResponse (fallback to OpenAI estimate if no eBay data)
-  8. DELETE → upload-images-temp (async fire-and-forget, never fails hard)
-  9. Return unified JSON to app
+Pagar.me → POST pagarme-webhook (no JWT; HMAC x-hub-signature)
+  → payments status + orders status (paid → processando via trigger)
+  ↓
+Optional: sync-payment-status (service-role Bearer) if webhook delayed
+
+Order list: Flutter → PostgREST orders where user_id = auth.uid() (all product kinds)
 ```
 
-Feature flag to toggle pipeline:
-```typescript
-const USE_SCRAPPER_PIPELINE = false; // false = API pipeline (default)
-```
+`APP_DEV_MODE=true` secret → PIX amount R$0,01 in `create-pix-order`. Missing `PAGARME_SECRET_KEY` → mock PIX response (local/dev).
 
 ---
 
-## Storage Rules (upload-images-temp)
+## Naming (English — non-negotiable)
 
-- Bucket: `card-scans-temp`
-- Signed URL TTL: **120 seconds** — must be consumed quickly by analyze-card
-- **NEVER** import Supabase Storage directly in `scan-card` — always delegate to `upload-images-temp`
-- DELETE is best-effort and fire-and-forget; never let cleanup block the response
+All schema and Edge identifiers must be **English** `snake_case`:
 
-```typescript
-// POST — upload images, get signed URLs
-const uploadRes = await fetch(`${SUPABASE_URL}/functions/v1/upload-images-temp`, {
-  method: 'POST',
-  body: formData,
-  headers: { Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
-});
-// returns: [{ field: 'image_front', url: string, path: string }]
+- Tables, columns, indexes, enums, functions, triggers, RLS policy names
+- Edge Function directory/export names (e.g. `create-pix-order`, `pagarme-webhook`)
 
-// DELETE — cleanup (after response sent)
-fetch(`${SUPABASE_URL}/functions/v1/upload-images-temp`, {
-  method: 'DELETE',
-  body: JSON.stringify({ paths }),
-  headers: { ... },
-}); // fire-and-forget, no await
-```
+UI copy and seed **labels** may be Portuguese. Catalog/seed **ids** may mirror app enum names (e.g. `consultarCnpj`).
+
+Do not introduce Portuguese identifiers for new tables, columns, or functions.
 
 ---
 
-## Database Tables
+## Auth patterns
 
-```sql
--- Daily scan quota per device
-device_rate_limits (
-  device_id TEXT,
-  date DATE,
-  count INTEGER
-)
+### Non-negotiable
 
--- eBay OAuth token cache (single row, renewed 60s before expiry)
-ebay_application_tokens (
-  access_token TEXT,
-  expires_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ
-)
-```
+- Never update/delete other users' data from untrusted body fields alone.
+- Prefer service-role inside Edge Functions for privileged writes; resolve order/payment from DB, not client-forged status.
 
-**Note:** The mobile app uses SQLite (`local_database_service.dart`), not Supabase, for local data.
+### App / proxy-facing (JWT or caller auth)
 
----
+- `create-order`, `create-pix-order`, `sync-payment-status`: deploy with default JWT verification unless product requires otherwise.
+- `create-order`: never trust `user_id` from the body — always set from JWT; reject when profile has no `device_id`.
+- `sync-payment-status`: expect service-role Bearer for privileged poll.
 
-## eBay API Pipeline
+### Webhook (no Supabase JWT)
 
-**ebay-api** — fetch raw listings:
-- Endpoint: eBay Browse API, limit 200
-- Season-removal fallback if ≤ 2 results
-- Delegates OAuth to `ebay-oauth-token`
-- Returns: `EbayItemSummary[]`
+- `pagarme-webhook`: `verify_jwt = false` in `config.toml`.
+- Authenticate with `PAGARME_WEBHOOK_SECRET` + `x-hub-signature` (HMAC SHA1).
+- Resolve `orderId` from metadata / charge linkage in DB — never trust unpaid status updates blindly.
 
-**ebay-api-inference** — filter + price:
-1. Structural comparability filter (player name, slabbed/raw, auto, parallel, team, parallelColor)
-2. Noise title filter (lot, case, reprint)
-3. Date filter: 365-day window (only if > 30 items)
-4. Seller quality filter
-5. Outlier removal: Tukey IQR far fence `Q3 + 2.0 × IQR`, then density tail (Q3 × 1.6 if ≥ 25% of data)
-6. Reference prices: **P20** (min) and **P90** (max), 2 decimal places
-7. Price trend: compare avg first vs second half, 5% threshold
-8. Returns top 20 sales
-
----
-
-## analyze-card
-
-- Model: `gpt-4.1` via OpenAI Responses API (`/v1/responses`)
-- Input: `{ frontImageUrl, backImageUrl? }` — signed URLs only
-- Output: full card JSON + `queryEbay` field
-- Season normalization: `"22-23"` → `"2022-23"`, `"2022-2023"` → `"2022-23"`
-- Strips `"Parallel"` from `queryEbay` before returning
-
----
-
-## Auth Patterns for Edge Functions
-
-There are two distinct auth patterns. Pick the right one based on who calls the function.
-
-### Non-negotiable security rule (all Edge Functions)
-
-- **Never update or delete other users' data** based on request body fields.
-- Always resolve the acting user via `auth.getUser()` from the JWT, and only
-  update rows scoped to that `user.id`.
-- If you need cross-user backfills, do it as an **admin-only manual runbook**
-  or a separate server-side job, never as an app-facing Edge Function.
-
-### App-facing functions (called by the mobile app with a user JWT)
-
-Reference implementation: `ensure-profile/index.ts` and `monitoring-terms/index.ts`.
-
-```typescript
-// 1. Require the Authorization header
-const authHeader = req.headers.get("Authorization");
-if (!authHeader) return unauthorizedResponse();
-
-// 2. Build a user-scoped client with the JWT
-const userClient = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_ANON_KEY")!,   // ← anon key, NOT service role
-  { global: { headers: { Authorization: authHeader } } },
-);
-
-// 3. Resolve user_id from the JWT — never trust client-supplied user_id
-const { data: { user }, error } = await userClient.auth.getUser();
-if (error || !user) return unauthorizedResponse();
-const userId = user.id;
-
-// 4. Use adminClient (service role) only for privileged DB writes
-const adminClient = createClient(
-  Deno.env.get("SUPABASE_URL")!,
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-);
-```
-
-Deploy **without** `--no-verify-jwt` (JWT verification enabled by default).
-
-> **Do not use `scan-card` as the auth reference** — it doesn't validate the user
-> with `getUser()`. Always follow the `ensure-profile` pattern for user-facing functions.
-
-### Webhook functions (called by external services, no user JWT)
-
-Reference implementation: `monitoring-webhook/index.ts`.
-
-```typescript
-// Authenticate via shared secret header
-const secret = Deno.env.get("MONITORING_WEBHOOK_SECRET");
-const provided = req.headers.get("X-Webhook-Secret");
-if (!provided || provided !== secret) return unauthorizedResponse();
-
-// Resolve user_id only from the database — never from the request body
-const { data: monitoring } = await adminClient
-  .from("monitoring_cards")
-  .select("user_id, card_id")
-  .eq("term_id", resolvedTermId)
-  .eq("is_active", true)
-  .maybeSingle();
-```
-
-Deploy **with** `--no-verify-jwt` (no Supabase JWT expected).
-
----
-
-## Monitoring Architecture
-
-| File | Role |
-|---|---|
-| `supabase/functions/monitoring-terms/index.ts` | Register / unregister a card for monitoring (app-facing, JWT auth) |
-| `supabase/functions/monitoring-webhook/index.ts` | Receives price-change callbacks from external API (secret auth) |
-| `supabase/functions/_shared/ebay-query-builder.ts` | Shared eBay query string builder + price range helper |
-
-**DB tables** (see migration `20260414000001_monitoring_schema.sql`):
-- `terms` — external API term ids + query string
-- `price_history` — price snapshots per user + card
-- `monitoring_cards` — active/inactive monitoring subscriptions per user + card
-
-**Required secrets** for monitoring:
-- `MONITORING_API_BASE_URL` — base URL of the external monitoring API
-- `MONITORING_WEBHOOK_SECRET` — shared secret validated on each webhook call
-- `SCRAPPER_API_KEY` — API key for the external scrapper/monitoring service
-
-**Deploy commands**:
-```bash
-# App-facing (JWT enabled)
-supabase functions deploy monitoring-terms
-
-# Webhook (no JWT)
-supabase functions deploy monitoring-webhook --no-verify-jwt
-
-# Secrets
-supabase secrets set MONITORING_API_BASE_URL=https://...
-supabase secrets set MONITORING_WEBHOOK_SECRET=<strong-secret>
-```
-
----
-
-## Deploy Commands
+Deploy:
 
 ```bash
-supabase functions deploy <function-name>
-supabase secrets set KEY=value
+supabase functions deploy pagarme-webhook
 ```
 
-Test changes in `scan-card-dev` before deploying to `scan-card`.
+(`verify_jwt` comes from config; do not assume `--no-verify-jwt` is required if config is set.)
 
 ---
 
-## Environment Variables
+## Domain tables (public)
+
+Core entities from initial + follow-up migrations:
+
+- `profiles` — user profile (`device_id`, `name`, `person_type`, `occupation`, `interest_ids`, phone, monthly certificate interest)
+- `interests` — onboarding interest catalog (seeded ids match app enums)
+- `products` — certificate catalog SKUs / prices
+- `orders` — certificate requests (`guest_phone`, `selected_product_ids`, `total_cents`, status)
+- `order_documents` — issued docs linkage
+- `payments` — Pagar.me charge ids / status (`pagarme_charge_id` indexed)
+- Storage bucket `certificates` (private) + policy for download
+- Storage bucket `marketing` — contacts JSON for `send-marketing-emails`
+
+Trigger: payment paid → order `status = processando`.
+
+---
+
+## Marketing emails
+
+- Bucket: `marketing`
+- File: `contacts.json` (or `CONTACTS_JSON_PATH`)
+- Secrets: `RESEND_API_KEY`, optional `RESEND_FROM_EMAIL`
+- Template variable: `NOME_EMPRESA`
+
+---
+
+## Environment variables
 
 | Var | Used by |
 |---|---|
-| `SUPABASE_URL` | scan-card, ebay-api, upload-images-temp, ebay-oauth-token |
-| `SUPABASE_SERVICE_ROLE_KEY` | scan-card (rate limit), upload-images-temp, ebay-oauth-token |
-| `SUPABASE_ANON_KEY` | ebay-api (calls ebay-oauth-token) |
-| `OPENAI_API_KEY` | analyze-card |
-| `EBAY_CLIENT_ID` / `EBAY_CLIENT_SECRET` | ebay-oauth-token |
-| `SCRAPPER_API_KEY` | ebay-scrapper, monitoring-terms |
-| `MONITORING_API_BASE_URL` | monitoring-terms |
-| `MONITORING_WEBHOOK_SECRET` | monitoring-webhook |
+| `SUPABASE_URL` | all functions (runtime) |
+| `SUPABASE_SERVICE_ROLE_KEY` | all functions (runtime) |
+| `PAGARME_SECRET_KEY` | create-pix-order, sync-payment-status |
+| `PAGARME_WEBHOOK_SECRET` | pagarme-webhook |
+| `PAGARME_FALLBACK_PHONE` | create-pix-order (optional) |
+| `APP_DEV_MODE` | create-pix-order (optional; R$0,01 PIX) |
+| `RESEND_API_KEY` | send-marketing-emails |
+| `RESEND_FROM_EMAIL` | send-marketing-emails (optional) |
+| `CONTACTS_JSON_PATH` | send-marketing-emails (optional) |
+
+---
+
+## Deploy commands
+
+```bash
+supabase link --project-ref kpkctuuzhbnqudemeudh
+
+supabase functions deploy create-order
+supabase functions deploy create-pix-order
+supabase functions deploy pagarme-webhook
+supabase functions deploy sync-payment-status
+supabase functions deploy send-marketing-emails
+
+supabase secrets set KEY=value
+```
+
+Migrations: additive DDL only; follow `.cursor/skills/supabase-migrations/SKILL.md`. Do not rewrite already-applied production migrations. Do not blind `db push`.
+
+---
+
+## Flutter note
+
+Hub do PJ Flutter uses anonymous Supabase Auth (no Turnstile for now) on splash, syncs `profiles.device_id` under RLS, creates orders via `create-order` Edge Function (JWT), and lists orders via PostgREST under RLS (`user_id = auth.uid()`).
+
+Dart-defines: `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Dashboard: enable Anonymous sign-ins; captcha off for anon until Turnstile lands.

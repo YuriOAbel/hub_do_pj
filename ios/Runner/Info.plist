@@ -30,8 +30,6 @@
 	<string>Main</string>
 	<key>NSContactsUsageDescription</key>
 	<string>Salvar dados da empresa na sua agenda de contatos.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Usamos sua localização para melhorar a experiência de consulta.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSExceptionDomains</key>

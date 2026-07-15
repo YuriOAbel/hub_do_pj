@@ -7,6 +7,7 @@ Safety rules for SQL migrations under `supabase/migrations/`.
 - Do not use `TRUNCATE`.
 - Do not commit `DELETE` data operations.
 - Do not commit broad mass `UPDATE` over domain/user data.
+- **English identifiers only:** tables, columns, indexes, enums, functions, triggers, and policy names must be English `snake_case`. UI labels may be Portuguese; seed ids may mirror app enums. See `.cursor/skills/supabase/SKILL.md`.
 
 ## Preferred Migration Shape
 

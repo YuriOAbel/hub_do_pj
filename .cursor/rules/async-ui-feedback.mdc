@@ -1,0 +1,21 @@
+---
+description: >-
+  Router for fade-in display, async loading (API vs local 2s min), and error +
+  retry UI. Apply when building/editing screens, widgets, or providers that load
+  or first-paint content.
+globs:
+  - lib/presentation/**/*.dart
+  - lib/domain/providers/**/*.dart
+alwaysApply: false
+---
+
+# Rule: Async UI feedback Router
+
+- If opening a screen, revealing components after load, or handling any
+  API / local DB / SharedPreferences `await` for UI, read and follow
+  `.cursor/skills/async-ui-feedback/SKILL.md`.
+- Hard requirements: fade on display; clear loading for every await;
+  local/fast loads force **2s** minimum loading; API uses natural duration;
+  API (and local) errors show message + **tente novamente**.
+- If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
+- Source of truth: skill.

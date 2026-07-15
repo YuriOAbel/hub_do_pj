@@ -1,13 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:consulta_cnpj_new/domain/models/cnd_request_args.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
+import 'package:consulta_cnpj_new/domain/models/result_route_args.dart';
 import 'package:consulta_cnpj_new/domain/models/search_param.dart';
 import 'package:consulta_cnpj_new/presentation/calculator_screen/calculator_screen.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/cnd_confirm_screen.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_order_detail_screen/cnd_order_detail_screen.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_orders_screen/cnd_orders_screen.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_request_screen/cnd_request_screen.dart';
+import 'package:consulta_cnpj_new/presentation/company_score_screen/company_score_screen.dart';
 import 'package:consulta_cnpj_new/presentation/evaluation_screen/evaluation_screen.dart';
 import 'package:consulta_cnpj_new/presentation/financial_cards_screen/financial_cards_screen.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/home_screen.dart';
-import 'package:consulta_cnpj_new/presentation/location_permission_screen/location_permission_screen.dart';
 import 'package:consulta_cnpj_new/presentation/not_available_screen/not_available_screen.dart';
+import 'package:consulta_cnpj_new/domain/models/app_notification_model.dart';
+import 'package:consulta_cnpj_new/presentation/notification_center_screen/notification_center_screen.dart';
+import 'package:consulta_cnpj_new/presentation/notification_content_screen/notification_content_screen.dart';
+import 'package:consulta_cnpj_new/presentation/onboarding_screen/onboarding_screen.dart';
 import 'package:consulta_cnpj_new/presentation/paywall_screen/paywall_screen.dart';
 import 'package:consulta_cnpj_new/presentation/refer_friend_screen/refer_friend_screen.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/result_screen.dart';
@@ -17,8 +27,8 @@ import 'package:consulta_cnpj_new/presentation/splash_screen/splash_screen.dart'
 
 class AppRoutes {
   static const splash = '/';
-  static const locationPermission = '/location-permission';
   static const home = '/home';
+  static const onboarding = '/onboarding';
   static const result = '/result';
   static const searchAdvanced = '/search-advanced';
   static const searchAdvancedFilter = '/search-advanced/filter';
@@ -28,18 +38,37 @@ class AppRoutes {
   static const evaluation = '/evaluation';
   static const notAvailable = '/not-available';
   static const financialCards = '/financial-cards';
+  static const notifications = '/notifications';
+  static const notificationContent = '/notification-content';
+  static const companyScore = '/company-score';
+  static const cndRequest = '/cnd/request';
+  static const cndConfirm = '/cnd/confirm';
+  static const cndOrders = '/cnd/orders';
+  static const cndOrderDetail = '/cnd/orders/detail';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
         return _page(const SplashScreen(), settings);
-      case locationPermission:
-        return _page(const LocationPermissionScreen(), settings);
       case home:
         return _page(const HomeScreen(), settings);
+      case onboarding:
+        return _page(const OnboardingScreen(), settings);
       case result:
-        final args = settings.arguments as CnpjModel;
-        return _page(ResultScreen(cnpj: args), settings);
+        final args = settings.arguments;
+        if (args is ResultRouteArgs) {
+          return _page(
+            ResultScreen(
+              cnpj: args.cnpj,
+              fromOnboarding: args.fromOnboarding,
+            ),
+            settings,
+          );
+        }
+        return _page(
+          ResultScreen(cnpj: args as CnpjModel),
+          settings,
+        );
       case searchAdvanced:
         final args = settings.arguments as SearchParam?;
         return _page(SearchAdvancedScreen(initialParam: args), settings);
@@ -61,6 +90,30 @@ class AppRoutes {
         return _page(NotAvailableScreen(origin: args), settings);
       case financialCards:
         return _page(const FinancialCardsScreen(), settings);
+      case notifications:
+        return _page(const NotificationCenterScreen(), settings);
+      case notificationContent:
+        final args = settings.arguments as NotificationContentArgs? ??
+            const NotificationContentArgs(title: '', body: '');
+        return _page(NotificationContentScreen(args: args), settings);
+      case companyScore:
+        return _page(const CompanyScoreScreen(), settings);
+      case cndRequest:
+        final raw = settings.arguments;
+        final entry = switch (raw) {
+          CndRequestEntryArgs e => e,
+          CndRequestArgs a => a.toEntry(),
+          _ => const CndRequestEntryArgs(),
+        };
+        return _page(CndRequestScreen(entry: entry), settings);
+      case cndConfirm:
+        final args = settings.arguments as CndRequestArgs;
+        return _page(CndConfirmScreen(args: args), settings);
+      case cndOrders:
+        return _page(const CndOrdersScreen(), settings);
+      case cndOrderDetail:
+        final args = settings.arguments as CndOrderDetailArgs;
+        return _page(CndOrderDetailScreen(order: args.order), settings);
       default:
         return _page(const SplashScreen(), settings);
     }

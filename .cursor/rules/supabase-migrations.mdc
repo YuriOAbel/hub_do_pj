@@ -8,5 +8,6 @@ alwaysApply: false
 
 - If touching `supabase/migrations/**`, read and follow
   `.cursor/skills/supabase-migrations/SKILL.md`.
+- Tables, columns, functions: English `snake_case` only.
 - If architecture is unclear, apply `.cursor/rules/dart-architecture.mdc`.
 - Source of truth: skill.

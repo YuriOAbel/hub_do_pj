@@ -12,12 +12,14 @@ class ResultContactActionCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.onCopy,
   });
 
   final String iconAsset;
   final String title;
   final String subtitle;
   final void Function(BuildContext context) onTap;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +75,20 @@ class ResultContactActionCard extends StatelessWidget {
                 ],
               ),
             ),
+            if (onCopy != null) ...[
+              GestureDetector(
+                onTap: onCopy,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+                  child: Icon(
+                    Icons.content_copy_rounded,
+                    size: 18,
+                    color: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ],
             SvgPicture.asset(
               'assets/icons/left_arrow.svg',
               height: 12,

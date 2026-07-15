@@ -27,11 +27,13 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
   }
 
   void _calculate() {
-    final revenue = double.tryParse(
+    final revenue =
+        double.tryParse(
           _revenueController.text.replaceAll(RegExp(r'[^\d]'), ''),
         ) ??
         0;
-    final margin = double.tryParse(_marginController.text.replaceAll(',', '.')) ?? 0;
+    final margin =
+        double.tryParse(_marginController.text.replaceAll(',', '.')) ?? 0;
     setState(() => _result = revenue * (margin / 100));
     FirebaseAnalyticsHelper.instance.logSalvarProspecacao();
   }
@@ -45,8 +47,10 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Faturamento estimado',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            Text(
+              'Faturamento estimado',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
             TextField(
               controller: _revenueController,
               keyboardType: TextInputType.number,
@@ -58,17 +62,23 @@ class _CalculatorScreenState extends ConsumerState<CalculatorScreen> {
               ],
             ),
             SizedBox(height: 2.h),
-            Text('Margem (%)',
-                style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            Text(
+              'Margem (%)',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
             TextField(
               controller: _marginController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
             ),
             SizedBox(height: 3.h),
             CnpjPrimaryButton(
               onPressed: _calculate,
-              child: Text('Calcular',
-                  style: GoogleFonts.inter(color: Colors.white)),
+              child: Text(
+                'Calcular',
+                style: GoogleFonts.inter(color: Colors.white),
+              ),
             ),
             if (_result != null) ...[
               SizedBox(height: 3.h),

@@ -94,6 +94,56 @@
       "name": "salvar_prospecacao",
       "description": "User saved prospecting calc",
       "parameters": []
+    },
+    "onboarding_started": {
+      "name": "onboarding_started",
+      "description": "User started first-session onboarding",
+      "parameters": []
+    },
+    "onboarding_completed": {
+      "name": "onboarding_completed",
+      "description": "User completed first-session onboarding",
+      "parameters": []
+    },
+    "onboarding_occupation": {
+      "name": "onboarding_occupation",
+      "description": "User selected onboarding profession or company occupation",
+      "parameters": ["occupation"]
+    },
+    "onboarding_interests": {
+      "name": "onboarding_interests",
+      "description": "User selected onboarding interests",
+      "parameters": ["interests"]
+    },
+    "onboarding_company_infos": {
+      "name": "onboarding_company_infos",
+      "description": "User selected company info preferences",
+      "parameters": ["infos"]
+    },
+    "onboarding_rating": {
+      "name": "onboarding_rating",
+      "description": "User rated app during onboarding",
+      "parameters": ["stars"]
+    },
+    "onboarding_rating_skipped": {
+      "name": "onboarding_rating_skipped",
+      "description": "User skipped onboarding rating",
+      "parameters": []
+    },
+    "onboarding_feedback": {
+      "name": "onboarding_feedback",
+      "description": "User submitted low-rating feedback during onboarding",
+      "parameters": []
+    },
+    "onboarding_paywall_skipped": {
+      "name": "onboarding_paywall_skipped",
+      "description": "User dismissed onboarding paywall placeholder",
+      "parameters": []
+    },
+    "in_app_review_requested": {
+      "name": "in_app_review_requested",
+      "description": "App requested in-app store review",
+      "parameters": []
     }
   }
 }

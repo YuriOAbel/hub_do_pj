@@ -2,13 +2,24 @@
 
 Checklist do que falta configurar manualmente para rodar no iOS (o projeto legado só rodava no Android).
 
-> Prep App Store (código + passos manuais): ver `docs/APPSTORE_CHECKLIST.md`.
+> Prep App Store (código + passos manuais): ver `docs/APPSTORE_CHECKLIST.md`.  
+> Analytics DebugView: ver `docs/FIREBASE_DEBUGVIEW.md`.
 
 ## Firebase e build
 
-- [ ] **GoogleService-Info.plist** — baixar do [Firebase Console](https://console.firebase.google.com) e adicionar em `ios/Runner/`
-- [ ] **FlutterFire** — rodar `flutterfire configure` para gerar `lib/firebase_options.dart` com target iOS
-- [ ] **APNs** — upload da chave/certificado Apple no Firebase → Cloud Messaging (push não funciona sem isso)
+- [ ] **`GoogleService-Info.plist`** — baixar do Firebase Console e adicionar via Xcode em `ios/Runner/` (Copy Bundle Resources)
+- [x] **`lib/firebase_options.dart`** — Android + iOS
+- [x] **`FirebaseService`** — usa `DefaultFirebaseOptions.currentPlatform`
+- [ ] **APNs** — upload da chave Auth Key `.p8` no Firebase Console → Project settings → Cloud Messaging (push iOS não funciona sem isso)
+
+> Bundle ID iOS ≠ package Android de propósito: Apple **não permite underscore** em Bundle ID.  
+> Android: `br.com.cgy.consulta_cnpj_empresas` · iOS: `br.com.cgy.consultaCnpjEmpresas`
+
+```bash
+# Opcional: atualizar só lib/firebase_options.dart a partir do Firebase CLI
+firebase login
+./scripts/configure_firebase.sh
+```
 
 ## Identidade e assinatura
 
@@ -27,7 +38,7 @@ Checklist do que falta configurar manualmente para rodar no iOS (o projeto legad
 
 Já no `ios/Runner/Info.plist`:
 
-- [x] `NSContactsUsageDescription` / `NSLocationWhenInUseUsageDescription`
+- [x] `NSContactsUsageDescription`
 - [x] Orientação Portrait (iPhone + iPad)
 - [x] ATS exception para `api.consultarempresas.com.br`
 - [x] `LSApplicationQueriesSchemes`, `UIBackgroundModes`, `ITSAppUsesNonExemptEncryption`
@@ -41,7 +52,7 @@ Já no `ios/Runner/Info.plist`:
 ## Conteúdo e loja
 
 - [ ] **URL App Store** — atualizar em `lib/services/share_app_service.dart` (placeholder `id0000000000`)
-- [ ] **Privacy Nutrition Labels** — declarar contatos, localização, analytics
+- [ ] **Privacy Nutrition Labels** — declarar contatos, analytics
 - [ ] **Política de privacidade** — URL em `lib/core/config/legal_urls.dart` + ASC
 - [x] **Disclaimer in-app** — `AppDisclaimerBanner` na home e no resultado
 

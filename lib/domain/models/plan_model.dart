@@ -13,4 +13,12 @@ class PlanModel with _$PlanModel {
   }) = _PlanModel;
 }
 
-enum PaywallOrigin { home, result, favorite, share, maps, contact }
+enum PaywallOrigin {
+  home,
+  result,
+  favorite,
+  share,
+  contact,
+  onboarding,
+  score,
+}

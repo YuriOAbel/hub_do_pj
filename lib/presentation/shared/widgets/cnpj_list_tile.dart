@@ -30,7 +30,7 @@ class CnpjListTile extends StatelessWidget {
       ),
       subtitle: Text(
         item.cnpj ?? '',
-        style: GoogleFonts.inter(fontSize: 12.sp, color: AppTheme.textSecondary),
+        style: GoogleFonts.inter(fontSize: 14.sp, color: AppTheme.textSecondary),
       ),
       trailing: CnpjSvgIcon(
         'assets/icons/left_arrow.svg',

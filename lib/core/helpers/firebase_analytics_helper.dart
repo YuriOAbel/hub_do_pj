@@ -38,4 +38,34 @@ class FirebaseAnalyticsHelper {
   Future<void> logAvaliou() => _firebase.logEvent(eventKey: 'avaliou');
   Future<void> logSalvarProspecacao() =>
       _firebase.logEvent(eventKey: 'salvar_prospecacao');
+
+  Future<void> logOnboardingStarted() =>
+      _firebase.logEvent(eventKey: 'onboarding_started');
+  Future<void> logOnboardingCompleted() =>
+      _firebase.logEvent(eventKey: 'onboarding_completed');
+  Future<void> logOnboardingOccupation(String occupation) =>
+      _firebase.logEvent(
+        eventKey: 'onboarding_occupation',
+        parameters: {'occupation': occupation},
+      );
+  Future<void> logOnboardingInterests(String interests) => _firebase.logEvent(
+        eventKey: 'onboarding_interests',
+        parameters: {'interests': interests},
+      );
+  Future<void> logOnboardingCompanyInfos(String infos) => _firebase.logEvent(
+        eventKey: 'onboarding_company_infos',
+        parameters: {'infos': infos},
+      );
+  Future<void> logOnboardingRating(int stars) => _firebase.logEvent(
+        eventKey: 'onboarding_rating',
+        parameters: {'stars': stars},
+      );
+  Future<void> logOnboardingRatingSkipped() =>
+      _firebase.logEvent(eventKey: 'onboarding_rating_skipped');
+  Future<void> logOnboardingFeedback() =>
+      _firebase.logEvent(eventKey: 'onboarding_feedback');
+  Future<void> logOnboardingPaywallSkipped() =>
+      _firebase.logEvent(eventKey: 'onboarding_paywall_skipped');
+  Future<void> logInAppReviewRequested() =>
+      _firebase.logEvent(eventKey: 'in_app_review_requested');
 }

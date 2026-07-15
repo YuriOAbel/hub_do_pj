@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
+import 'package:consulta_cnpj_new/domain/providers/feature_waitlist_provider.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
-import 'package:consulta_cnpj_new/services/firebase_messaging_service.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class NotAvailableScreen extends ConsumerStatefulWidget {
@@ -16,16 +16,46 @@ class NotAvailableScreen extends ConsumerStatefulWidget {
 }
 
 class _NotAvailableScreenState extends ConsumerState<NotAvailableScreen> {
+  bool _notified = false;
+
   @override
   void initState() {
     super.initState();
     if (widget.origin.contains('restricao')) {
-      FirebaseMessagingService.instance.subscribeRestriction();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(featureWaitlistProvider.notifier)
+            .subscribeRestrictionTopic();
+      });
+    }
+  }
+
+  Future<void> _onNotifyPressed() async {
+    try {
+      final message = await ref
+          .read(featureWaitlistProvider.notifier)
+          .notifyWhenAvailable(widget.origin);
+      if (!mounted) return;
+      setState(() => _notified = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível registrar o aviso. Tente de novo.'),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final waitlist = ref.watch(featureWaitlistProvider);
+    final loading = waitlist.isLoading;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Indisponível')),
       body: Padding(
@@ -51,10 +81,35 @@ class _NotAvailableScreenState extends ConsumerState<NotAvailableScreen> {
               style: GoogleFonts.inter(color: AppTheme.textSecondary),
             ),
             const Spacer(),
-            CnpjPrimaryButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Voltar',
-                  style: GoogleFonts.inter(color: Colors.white)),
+            if (_notified)
+              Text(
+                'Você será avisado quando estiver disponível.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary,
+                ),
+              )
+            else
+              CnpjPrimaryButton(
+                enabled: !loading,
+                onPressed: loading ? null : _onNotifyPressed,
+                child: Text(
+                  loading ? 'Registrando...' : 'Avise-me quando estiver disponível',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: Colors.white),
+                ),
+              ),
+            SizedBox(height: 1.5.h),
+            TextButton(
+              onPressed: loading ? null : () => Navigator.pop(context),
+              child: Text(
+                'Voltar',
+                style: GoogleFonts.inter(
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
             ),
           ],
         ),

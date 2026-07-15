@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:sizer/sizer.dart';
@@ -31,6 +32,7 @@ class ResultContactTab extends ConsumerWidget {
             iconAsset: 'assets/icons/telephone.svg',
             title: 'Telefone',
             subtitle: _phone!,
+            onCopy: () => _copyToClipboard(context, _phone!),
             onTap: (cardContext) => _premiumAction(
               cardContext,
               ref,
@@ -46,6 +48,7 @@ class ResultContactTab extends ConsumerWidget {
             iconAsset: 'assets/icons/whatsapp.svg',
             title: 'WhatsApp',
             subtitle: _phone!,
+            onCopy: () => _copyToClipboard(context, _phone!),
             onTap: (cardContext) => _premiumAction(
               cardContext,
               ref,
@@ -62,6 +65,7 @@ class ResultContactTab extends ConsumerWidget {
             iconAsset: 'assets/icons/email.svg',
             title: 'Envie um e-mail',
             subtitle: _email!,
+            onCopy: () => _copyToClipboard(context, _email!),
             onTap: (cardContext) => _premiumAction(
               cardContext,
               ref,
@@ -112,6 +116,14 @@ class ResultContactTab extends ConsumerWidget {
             ),
           ),
       ],
+    );
+  }
+
+  Future<void> _copyToClipboard(BuildContext context, String value) async {
+    await Clipboard.setData(ClipboardData(text: value));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Copiado para a área de transferência.')),
     );
   }
 

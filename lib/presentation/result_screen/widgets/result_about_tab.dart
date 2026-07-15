@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
-import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
-import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
-import 'package:consulta_cnpj_new/presentation/shared/widgets/app_disclaimer_banner.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_svg_icon.dart';
-import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
-class ResultAboutTab extends ConsumerWidget {
+class ResultAboutTab extends StatelessWidget {
   const ResultAboutTab({super.key, required this.cnpj});
 
   final CnpjModel cnpj;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final activity = cnpj.atividadePrincipal?.isNotEmpty == true
         ? cnpj.atividadePrincipal!.first.text
         : null;
@@ -28,8 +23,6 @@ class ResultAboutTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const AppDisclaimerBanner(),
-          SizedBox(height: 2.h),
           if (cnpj.municipio != null)
             Text(
               'Empresa de ${cnpj.municipio}, ${cnpj.uf ?? ''}, fundada em ${cnpj.abertura ?? ''}.'
@@ -48,7 +41,7 @@ class ResultAboutTab extends ConsumerWidget {
           _row('Natureza jurídica', cnpj.naturezaJuridica),
           _row('Capital social', cnpj.capitalSocial),
           SizedBox(height: 2.h),
-          _mapsCard(context, ref),
+          _mapsCard(),
         ],
       ),
     );
@@ -77,10 +70,10 @@ class ResultAboutTab extends ConsumerWidget {
     );
   }
 
-  Widget _mapsCard(BuildContext context, WidgetRef ref) {
+  Widget _mapsCard() {
     final phone = cnpj.telefone?.split('/').first.trim();
     return GestureDetector(
-      onTap: () => _openMaps(context, ref),
+      onTap: _openMaps,
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(4.w),
@@ -147,12 +140,7 @@ class ResultAboutTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _openMaps(BuildContext context, WidgetRef ref) async {
-    final isPremium = ref.read(premiumStatusProvider).value ?? false;
-    if (!isPremium) {
-      await PremiumUpsellSheet.show(context, PaywallOrigin.maps);
-      return;
-    }
+  Future<void> _openMaps() async {
     await FirebaseAnalyticsHelper.instance.logAbriuMaps();
     await MapsLauncher.launchQuery(cnpj.fullAddress);
   }

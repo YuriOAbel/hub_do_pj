@@ -8,6 +8,7 @@ alwaysApply: false
 
 - If touching `supabase/functions/**`, read and follow
   `.cursor/skills/supabase/SKILL.md`.
+- Tables, columns, functions, and Edge names: English `snake_case` only.
 - Dependencies: `.cursor/rules/database-requests.mdc` and
   `.cursor/rules/supabase-migrations.mdc`.
 - Source of truth: skill.

@@ -15,7 +15,7 @@ Core Functionality:
 - Premium subscription: RevenueCat entitlement `premium` — unlimited search, favorites, PDF share, maps, contact actions.
 - Extras: advanced search (Remote Config gated), prospecting calculator, refer-a-friend, app evaluation, financial cards, restriction notification topic.
 
-Data Strategy: **Current phase:** direct HTTP services (ReceitaWS + ASW API) with singleton services abstracting I/O. Local state via SharedPreferences. Firebase for Analytics, Remote Config, and FCM. RevenueCat for subscriptions. **Future:** migrate APIs to Supabase Edge Functions; ads (Wortise/AdMob) in a later phase.
+Data Strategy: **Current phase:** direct HTTP services (ReceitaWS + ASW API) with singleton services abstracting I/O. Local state via SharedPreferences. Firebase for Analytics, Remote Config, and FCM. RevenueCat for subscriptions. **Supabase:** this repo is the deploy anchor for Certidões PJ (project `certidoes` / `kpkctuuzhbnqudemeudh`) — Edge Functions + migrations live under `supabase/`. Flutter creates CND/protesto/restrição orders via `create-order` (JWT + `profiles.device_id`) and lists via PostgREST under RLS. Ads (Wortise/AdMob) in a later phase.
 
 Monetization (MVP): RevenueCat only. No interstitial/banner ads yet. Premium gates via `PremiumUpsellSheet` → paywall.
 
@@ -33,6 +33,7 @@ Rules are lightweight routers; detailed implementation guidance lives in `.curso
 | Creating or modifying a model | `new-model.mdc` | `new-model/SKILL.md` |
 | Creating or modifying a service | `new-service.mdc` | `new-service/SKILL.md` |
 | Any UI work (fonts, colors, sizing) | `theming.mdc` | `theming/SKILL.md` |
+| Fade on display, async loading, error + retry | `async-ui-feedback.mdc` | `async-ui-feedback/SKILL.md` |
 | Widget lists (`if`/`else` vs ternary), locals only when reused or conditional | `flutter-code-style.mdc` | `flutter-code-style/SKILL.md` |
 | Paywall, RevenueCat, or purchase flow | `paywall.mdc` | `payments-core/SKILL.md` |
 | Firebase Remote Config | `remote-config.mdc` | `remote-config/SKILL.md` |
@@ -80,8 +81,13 @@ flutter analyze
 # Analytics registry (run after changing analytics_events.json or FirebaseAnalyticsHelper)
 flutter test test/analytics_events_registry_test.dart
 
-# Deploy a Supabase Edge Function (future backend migration)
-supabase functions deploy <function-name> --no-verify-jwt
+# Supabase (Certidões PJ — see docs/SUPABASE.md)
+supabase link --project-ref kpkctuuzhbnqudemeudh
+supabase functions deploy create-order
+supabase functions deploy create-pix-order
+supabase functions deploy pagarme-webhook
+supabase functions deploy sync-payment-status
+supabase functions deploy send-marketing-emails
 supabase secrets set KEY=value
 ```
 
@@ -99,7 +105,6 @@ lib/
 │   └── providers/           # Riverpod @riverpod notifiers
 ├── presentation/            # Feature screens + local widgets
 │   ├── splash_screen/
-│   ├── location_permission_screen/
 │   ├── home_screen/         # Search, banners, historic/favorites tabs
 │   ├── result_screen/       # Company detail (4 tabs)
 │   ├── paywall_screen/
@@ -121,10 +126,13 @@ assets/
 └── config/                  # design.json, remote_config.json, analytics_events.json
 
 docs/
-└── IOS_SETUP.md             # iOS manual setup checklist
+├── IOS_SETUP.md             # iOS manual setup checklist
+└── SUPABASE.md              # Certidões PJ Supabase anchor (link/deploy/secrets)
 
-supabase/                    # Future backend (not yet in use)
-└── functions/
+supabase/                    # Certidões PJ backend (source of truth)
+├── config.toml              # project_id = kpkctuuzhbnqudemeudh
+├── functions/               # create-pix-order, pagarme-webhook, sync-payment-status, send-marketing-emails
+└── migrations/
 ```
 
 ---

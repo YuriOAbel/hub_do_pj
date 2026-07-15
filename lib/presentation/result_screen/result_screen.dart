@@ -11,17 +11,23 @@ import 'package:consulta_cnpj_new/domain/providers/historic_provider.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_about_tab.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_activity_tab.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_contact_tab.dart';
-import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_partner_tab.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_header_card.dart';
+import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_onboarding_tutorial_coach.dart';
+import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_partner_tab.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_svg_icon.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/services/pdf_export_service.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
-  const ResultScreen({super.key, required this.cnpj});
+  const ResultScreen({
+    super.key,
+    required this.cnpj,
+    this.fromOnboarding = false,
+  });
 
   final CnpjModel cnpj;
+  final bool fromOnboarding;
 
   @override
   ConsumerState<ResultScreen> createState() => _ResultScreenState();
@@ -30,7 +36,10 @@ class ResultScreen extends ConsumerStatefulWidget {
 class _ResultScreenState extends ConsumerState<ResultScreen> {
   int _tabIndex = 0;
   bool _isFavorite = false;
+  bool _onboardingTutorialShown = false;
   final _shareButtonKey = GlobalKey();
+  final _headerKey = GlobalKey();
+  final _tabsKey = GlobalKey();
 
   @override
   void initState() {
@@ -40,31 +49,73 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
   Future<void> _init() async {
     await ref.read(historicListProvider.notifier).save(widget.cnpj);
-    final fav = await ref.read(favoriteListProvider.notifier).isFavorite(widget.cnpj);
+    final fav =
+        await ref.read(favoriteListProvider.notifier).isFavorite(widget.cnpj);
     if (mounted) setState(() => _isFavorite = fav);
+    if (widget.fromOnboarding) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTutorial());
+    }
+  }
+
+  void _maybeShowTutorial() {
+    if (!mounted || _onboardingTutorialShown || !widget.fromOnboarding) return;
+
+    // Early measure (mid push / before AppBar settles) offsets first target.
+    final animation = ModalRoute.of(context)?.animation;
+    if (animation != null && !animation.isCompleted) {
+      void listener(AnimationStatus status) {
+        if (status != AnimationStatus.completed) return;
+        animation.removeStatusListener(listener);
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) => _maybeShowTutorial());
+      }
+
+      animation.addStatusListener(listener);
+      return;
+    }
+
+    if (_headerKey.currentContext == null || _tabsKey.currentContext == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowTutorial());
+      return;
+    }
+
+    _onboardingTutorialShown = true;
+    Future<void>.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      ResultOnboardingTutorialCoach.show(
+        context: context,
+        headerKey: _headerKey,
+        tabsKey: _tabsKey,
+        onFinish: () {},
+      );
+    });
   }
 
   Future<void> _toggleFavorite() async {
     if (!isPremiumActive(ref)) {
       await FirebaseAnalyticsHelper.instance.logClicouDesbloqueioPremium();
+      if (!mounted) return;
       await PremiumUpsellSheet.show(context, PaywallOrigin.favorite);
       return;
     }
     await ref.read(favoriteListProvider.notifier).toggle(widget.cnpj);
     await FirebaseAnalyticsHelper.instance.logFavorito();
-    final fav = await ref.read(favoriteListProvider.notifier).isFavorite(widget.cnpj);
+    final fav =
+        await ref.read(favoriteListProvider.notifier).isFavorite(widget.cnpj);
     if (mounted) setState(() => _isFavorite = fav);
   }
 
   Future<void> _sharePdf() async {
     if (!isPremiumActive(ref)) {
+      if (!mounted) return;
       await PremiumUpsellSheet.show(context, PaywallOrigin.share);
       return;
     }
 
     try {
       await FirebaseAnalyticsHelper.instance.logCompartilhou();
-      final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final box =
+          _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null && box.hasSize
           ? box.localToGlobal(Offset.zero) & box.size
           : null;
@@ -82,11 +133,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = ['Sobre', 'Atividades', 'Sócios', 'Contato'];
+    const tabs = ['Sobre', 'Atividades', 'Sócios', 'Contato'];
+    final fromOnboarding = widget.fromOnboarding;
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
+        automaticallyImplyLeading: !fromOnboarding,
         title: Row(
           children: [
             CnpjSvgIcon(
@@ -106,29 +159,37 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            key: _shareButtonKey,
-            onPressed: _sharePdf,
-            icon: CnpjSvgIcon(
-              'assets/icons/upload.svg',
-              width: 20,
-              height: 20,
-              color: AppTheme.primary,
+          if (fromOnboarding)
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.close, color: AppTheme.primary),
+            )
+          else ...[
+            IconButton(
+              key: _shareButtonKey,
+              onPressed: _sharePdf,
+              icon: CnpjSvgIcon(
+                'assets/icons/upload.svg',
+                width: 20,
+                height: 20,
+                color: AppTheme.primary,
+              ),
             ),
-          ),
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: AppTheme.primary,
+            IconButton(
+              icon: Icon(
+                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: AppTheme.primary,
+              ),
+              onPressed: _toggleFavorite,
             ),
-            onPressed: _toggleFavorite,
-          ),
+          ],
         ],
       ),
       body: Column(
         children: [
-          ResultHeaderCard(cnpj: widget.cnpj),
+          ResultHeaderCard(key: _headerKey, cnpj: widget.cnpj),
           SizedBox(
+            key: _tabsKey,
             height: 48,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
@@ -138,8 +199,14 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _tabIndex = i),
                   child: Container(
-                    margin: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 0.5.h),
+                    margin: EdgeInsets.symmetric(
+                      horizontal: 2.w,
+                      vertical: 0.5.h,
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 5.w,
+                      vertical: 0.5.h,
+                    ),
                     decoration: BoxDecoration(
                       color: selected ? AppTheme.primary : AppTheme.background,
                       borderRadius: BorderRadius.circular(20),

@@ -14,7 +14,7 @@ Estado do projeto após prep de código (jul/2026). Textos de listing: `docs/STO
 - [x] Display name `Consulta CNPJ`
 - [x] Portrait only (iPhone + iPad)
 - [x] ATS exception HTTP para `api.consultarempresas.com.br`
-- [x] Usage descriptions (contatos + localização)
+- [x] Usage descriptions (contatos)
 - [x] `LSApplicationQueriesSchemes` (tel, mailto, maps, http/https)
 - [x] `ITSAppUsesNonExemptEncryption` = false (export compliance)
 - [x] Push entitlements (`Runner.entitlements` debug / `RunnerRelease.entitlements` production)
@@ -29,12 +29,14 @@ Estado do projeto após prep de código (jul/2026). Textos de listing: `docs/STO
 
 ### 1. Firebase iOS
 
-- [ ] Baixar `GoogleService-Info.plist` do Firebase Console → `ios/Runner/`
-- [ ] Rodar `flutterfire configure` (gerar `lib/firebase_options.dart` com iOS)
-- [ ] Atualizar `FirebaseService` para `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)` se FlutterFire gerar o arquivo
+- [ ] `GoogleService-Info.plist` em `ios/Runner/` (adicionar via Xcode; Bundle ID `br.com.cgy.consultaCnpjEmpresas`)
+- [x] `lib/firebase_options.dart` + `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`
 - [ ] Upload chave APNs no Firebase → Cloud Messaging
 
-Sem isso: Analytics / Remote Config / FCM no iOS falham (app já degrada, mas store review pode notar features quebradas).
+Sem plist + APNs: push/Analytics nativo iOS incompletos.  
+Bundle ID iOS em camelCase (Apple não aceita `_` como no package Android).
+
+DebugView: `docs/FIREBASE_DEBUGVIEW.md`.
 
 ### 2. Apple Developer + App Store Connect
 
@@ -54,7 +56,7 @@ Sem isso: Analytics / Remote Config / FCM no iOS falham (app já degrada, mas st
 
 - [ ] Publicar URL de política de privacidade
 - [ ] Colar em `lib/core/config/legal_urls.dart` → `privacyPolicy`
-- [ ] Mesma URL no App Store Connect + Privacy Nutrition Labels (contatos, localização, analytics)
+- [ ] Mesma URL no App Store Connect + Privacy Nutrition Labels (contatos, analytics)
 
 ### 5. Listing
 
