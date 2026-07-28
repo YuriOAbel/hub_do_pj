@@ -70,16 +70,6 @@
       "description": "User tapped WhatsApp action",
       "parameters": []
     },
-    "abriu_page_premium": {
-      "name": "abriu_page_premium",
-      "description": "User opened paywall screen",
-      "parameters": []
-    },
-    "comprou_page_premium": {
-      "name": "comprou_page_premium",
-      "description": "User completed premium purchase",
-      "parameters": []
-    },
     "clicou_desbloqueio_premium": {
       "name": "clicou_desbloqueio_premium",
       "description": "User tapped premium upsell",
@@ -144,6 +134,41 @@
       "name": "in_app_review_requested",
       "description": "App requested in-app store review",
       "parameters": []
+    },
+    "tutorial_complete": {
+      "name": "tutorial_complete",
+      "description": "User completed first-session onboarding intro",
+      "parameters": []
+    },
+    "view_item_list": {
+      "name": "view_item_list",
+      "description": "User viewed paywall services benefit list",
+      "parameters": ["item_list_id", "item_list_name"]
+    },
+    "view_item": {
+      "name": "view_item",
+      "description": "User opened paywall benefit detail (ver mais)",
+      "parameters": ["item_id", "item_name"]
+    },
+    "view_cart": {
+      "name": "view_cart",
+      "description": "User opened paywall subscription options",
+      "parameters": ["origin"]
+    },
+    "add_to_cart": {
+      "name": "add_to_cart",
+      "description": "User tapped Continuar on paywall (intent to purchase)",
+      "parameters": ["value", "currency", "item_id", "item_name"]
+    },
+    "begin_checkout": {
+      "name": "begin_checkout",
+      "description": "App is about to call RevenueCat purchase API",
+      "parameters": ["value", "currency", "item_id", "item_name"]
+    },
+    "purchase": {
+      "name": "purchase",
+      "description": "User completed premium subscription purchase",
+      "parameters": ["value", "currency", "transaction_id", "item_id", "item_name"]
     }
   }
 }

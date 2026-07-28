@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/domain/models/onboarding_model.dart';
+import 'package:consulta_cnpj_new/services/firebase_messaging_service.dart';
 import 'package:consulta_cnpj_new/services/in_app_review_service.dart';
 import 'package:consulta_cnpj_new/services/onboarding_service.dart';
 import 'package:consulta_cnpj_new/services/profile_sync_service.dart';
@@ -143,6 +144,17 @@ class OnboardingFlow extends _$OnboardingFlow {
     return FirebaseAnalyticsHelper.instance.logOnboardingCompanyInfos(csv);
   }
 
+  Future<void> savePendingCnpj(String cnpj) async {
+    await OnboardingService.instance.savePendingCnpj(cnpj);
+  }
+
+  Future<String?> takePendingCnpj() async {
+    final cnpj = await OnboardingService.instance.getPendingCnpj();
+    if (cnpj == null) return null;
+    await OnboardingService.instance.clearPendingCnpj();
+    return cnpj;
+  }
+
   Future<void> logRating(int stars) =>
       FirebaseAnalyticsHelper.instance.logOnboardingRating(stars);
 
@@ -155,12 +167,19 @@ class OnboardingFlow extends _$OnboardingFlow {
   Future<void> logPaywallSkipped() =>
       FirebaseAnalyticsHelper.instance.logOnboardingPaywallSkipped();
 
-  Future<void> logCompleted() =>
-      FirebaseAnalyticsHelper.instance.logOnboardingCompleted();
+  Future<void> logCompleted() async {
+    await FirebaseAnalyticsHelper.instance.logOnboardingCompleted();
+    await FirebaseAnalyticsHelper.instance.logTutorialComplete();
+  }
 
   Future<void> requestInAppReview() async {
     await FirebaseAnalyticsHelper.instance.logInAppReviewRequested();
     await InAppReviewService.instance.requestReview();
+  }
+
+  /// OS notification prompt — after company details, before rating review.
+  Future<void> requestNotificationPermission() async {
+    await FirebaseMessagingService.instance.requestPermission();
   }
 
   Future<void> finishOnboarding() async {

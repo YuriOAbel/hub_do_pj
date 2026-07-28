@@ -16,6 +16,9 @@ import 'package:consulta_cnpj_new/domain/providers/cnd_request_provider.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/widgets/cnd_certificates_list_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/widgets/cnd_email_disclaimer.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/widgets/cnd_service_disclaimer.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_error.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_loading.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
@@ -215,13 +218,16 @@ class _CndRequestScreenState extends ConsumerState<CndRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final catalog = ref.watch(cndCatalogProvider).value;
+    final catalogAsync = ref.watch(cndCatalogProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         title: Text(
-          _title(catalog),
+          catalogAsync.maybeWhen(
+            data: _title,
+            orElse: () => _title(null),
+          ),
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w600,
             color: AppTheme.textPrimary,
@@ -246,42 +252,52 @@ class _CndRequestScreenState extends ConsumerState<CndRequestScreen> {
         ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          children: [
-            Text(
-              _subtitle(catalog),
-              style: GoogleFonts.inter(
-                fontSize: AppTypography.fontTitle.sp,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
+        child: AppScreenFade(
+          child: AppAsyncFadeSwitcher(
+            child: catalogAsync.when(
+              loading: () =>
+                  const AppAsyncLoading(key: ValueKey('cnd-req-loading')),
+              error: (_, _) => AppAsyncError(
+                key: const ValueKey('cnd-req-error'),
+                onRetry: () => ref.invalidate(cndCatalogProvider),
               ),
-            ),
-            if (_showCertificatesLink(catalog)) ...[
-              SizedBox(height: 1.2.h),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () => _openCertificatesSheet(catalog!),
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Veja quais certidões você pode solicitar por aqui',
+              data: (catalog) => ListView(
+                key: const ValueKey('cnd-req-form'),
+                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                children: [
+                  Text(
+                    _subtitle(catalog),
                     style: GoogleFonts.inter(
-                      fontSize: AppTypography.fontSubtitle.sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppTheme.primary,
+                      fontSize: AppTypography.fontTitle.sp,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
                     ),
                   ),
-                ),
-              ),
-            ],
-            SizedBox(height: 2.5.h),
+                  if (_showCertificatesLink(catalog)) ...[
+                    SizedBox(height: 1.2.h),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        onPressed: () => _openCertificatesSheet(catalog),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: Text(
+                          'Veja quais certidões você pode solicitar por aqui',
+                          style: GoogleFonts.inter(
+                            fontSize: AppTypography.fontSubtitle.sp,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppTheme.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 2.5.h),
             TextField(
               controller: _cnpjController,
               keyboardType: TextInputType.number,
@@ -359,7 +375,10 @@ class _CndRequestScreenState extends ConsumerState<CndRequestScreen> {
             ),
             SizedBox(height: 2.5.h),
             const CndServiceDisclaimer(),
-          ],
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

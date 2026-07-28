@@ -1,0 +1,17 @@
+---
+description: >-
+  Router for Apple App Store and Google Play compliance reviews before
+  submission or when publishing a new version. Apply when the user asks to
+  revisar o app, compliance, envio, publicação, App Store, Google Play,
+  store review, or checklist loja.
+alwaysApply: false
+---
+
+# Rule: Store compliance Router
+
+- If the user asks to review the app for store submission, publish a new
+  version, or run compliance against Apple / Google Play policies, read and
+  follow `.cursor/skills/store-compliance/SKILL.md`.
+- Always produce or update `docs/STORE_COMPLIANCE.md` (attention points +
+  checklist) as the skill requires.
+- Source of truth: skill.

@@ -75,7 +75,7 @@ class CndCertificatesListSheet extends StatelessWidget {
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: certificates.length,
-                separatorBuilder: (_, __) => Divider(
+                separatorBuilder: (_, _) => Divider(
                   height: 1.5.h,
                   color: AppTheme.textMuted.withValues(alpha: 0.2),
                 ),

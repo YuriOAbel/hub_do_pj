@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Política de Privacidade — Consulta CNPJ</title>
+  <meta name="description" content="Política de Privacidade do aplicativo Consulta CNPJ Empresas (Hub do PJ)." />
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #ffffff;
+      --text: #1a1d26;
+      --muted: #5c6370;
+      --border: #e6e8ee;
+      --accent: #1b6ef3;
+      --warn: #b45309;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem 1.5rem;
+    }
+    h1 {
+      font-size: 1.75rem;
+      line-height: 1.25;
+      margin: 0 0 0.5rem;
+    }
+    .meta {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.75rem;
+    }
+    h2 {
+      font-size: 1.15rem;
+      margin: 1.75rem 0 0.6rem;
+    }
+    p, li { font-size: 1rem; color: var(--text); }
+    ul { padding-left: 1.25rem; }
+    li { margin: 0.35rem 0; }
+    a { color: var(--accent); }
+    .notice {
+      background: #fff8eb;
+      border: 1px solid #f5d9a8;
+      color: #7a4510;
+      border-radius: 8px;
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+      margin: 1rem 0 1.5rem;
+    }
+    footer {
+      margin-top: 2rem;
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <article class="card">
+      <h1>Política de Privacidade</h1>
+      <p class="meta">
+        Aplicativo: <strong>Consulta CNPJ Empresas</strong> (“App”)<br />
+        Operador: <strong>Hub do PJ</strong><br />
+        Bundle / package: <code>com.hubdopj.consultaempresas</code><br />
+        Última atualização: 17 de julho de 2026
+      </p>
+
+      <div class="notice">
+        Este App é particular e independente. Não é oficial do Governo Federal,
+        da Receita Federal do Brasil nem de qualquer órgão público.
+        Dados cadastrais exibidos são públicos e de caráter informativo.
+      </div>
+
+      <p>
+        Esta Política descreve quais dados o App coleta, para que fins os utiliza,
+        com quem pode compartilhá-los e quais direitos você possui, em conformidade
+        com a Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018) e com as
+        exigências de privacidade da Apple App Store e do Google Play.
+      </p>
+
+      <h2>1. Controlador e contato</h2>
+      <p>
+        O controlador dos dados pessoais tratados no âmbito do App é o Hub do PJ,
+        responsável pelo aplicativo Consulta CNPJ Empresas.
+      </p>
+      <p>
+        Para exercer direitos de titular, dúvidas sobre privacidade ou solicitar
+        exclusão de dados, entre em contato pelo WhatsApp de suporte do App
+        (número configurado na publicação / ficha da loja) ou pelo canal de suporte
+        indicado na página do aplicativo nas lojas.
+      </p>
+
+      <h2>2. Dados que coletamos</h2>
+      <p>Dependendo do uso do App, podemos tratar as seguintes categorias:</p>
+      <ul>
+        <li>
+          <strong>Identificadores do dispositivo e da conta:</strong> identificador
+          do dispositivo; sessão de autenticação anônima (Supabase Auth); identificadores
+          de usuário associados ao perfil.
+        </li>
+        <li>
+          <strong>Dados de perfil / onboarding:</strong> preferências e interesses
+          informados no onboarding; tipo de uso; campos de perfil necessários à
+          operação (ex.: <code>device_id</code>, interesses, vínculo de plano/assinatura).
+        </li>
+        <li>
+          <strong>Dados de uso e diagnóstico:</strong> eventos de analytics
+          (Firebase Analytics); registros de falhas e desempenho (Firebase Crashlytics);
+          token de notificação push (Firebase Cloud Messaging), quando você permitir.
+        </li>
+        <li>
+          <strong>Dados locais no aparelho:</strong> histórico de consultas e favoritos
+          armazenados localmente (SharedPreferences); caixa de notificações locais.
+        </li>
+        <li>
+          <strong>Contatos (opcional):</strong> acesso à agenda apenas quando você
+          autorizar e solicitar salvar um contato de empresa a partir do App.
+        </li>
+        <li>
+          <strong>Pedidos e serviços adicionais (ex.: certidões / CND):</strong>
+          dados necessários ao pedido (CNPJ consultado, e-mail de entrega, status
+          do pedido e informações de pagamento do serviço solicitado), processados
+          via backend (Supabase) e provedores de pagamento aplicáveis.
+        </li>
+        <li>
+          <strong>Assinatura Premium:</strong> status de assinatura e identificadores
+          de produto/compra gerenciados pelas lojas (Apple / Google) e pelo RevenueCat.
+          Dados de cartão e cobrança da assinatura digital são tratados pelas lojas;
+          o App não armazena número completo de cartão para IAP.
+        </li>
+        <li>
+          <strong>Consultas cadastrais:</strong> CNPJ, razão social ou demais termos
+          que você digitar para busca. Os resultados exibidos são dados públicos
+          obtidos de fontes de consulta (incluindo ReceitaWS e API de consulta por nome).
+        </li>
+      </ul>
+
+      <h2>3. Finalidades e bases legais</h2>
+      <ul>
+        <li>
+          <strong>Prestação do serviço:</strong> realizar consultas cadastrais,
+          manter histórico/favoritos, exibir score/histórico de consultas e gerenciar
+          pedidos — execução de contrato / legítimo interesse na operação do App.
+        </li>
+        <li>
+          <strong>Assinaturas e limites:</strong> identificar status Premium, restaurar
+          compras e aplicar limites do plano gratuito — execução de contrato.
+        </li>
+        <li>
+          <strong>Notificações:</strong> enviar avisos e comunicações do App, quando
+          autorizadas — consentimento (permissão do sistema) e/ou legítimo interesse.
+        </li>
+        <li>
+          <strong>Melhoria e segurança:</strong> analytics, diagnóstico de erros e
+          prevenção a abuso — legítimo interesse.
+        </li>
+        <li>
+          <strong>Cumprimento legal:</strong> atender obrigações legais, ordens
+          judiciais e políticas das lojas de aplicativos.
+        </li>
+      </ul>
+
+      <h2>4. Compartilhamento com terceiros</h2>
+      <p>Podemos compartilhar dados com prestadores que processam informações em nosso nome:</p>
+      <ul>
+        <li><strong>Firebase (Google)</strong> — Analytics, Crashlytics, Cloud Messaging.</li>
+        <li><strong>Supabase</strong> — autenticação anônima, perfil, pedidos e dados de backend.</li>
+        <li><strong>RevenueCat / Apple / Google</strong> — gestão de assinaturas e compras nas lojas.</li>
+        <li><strong>APIs de consulta cadastral</strong> — ReceitaWS e API Consulta Empresas (busca por nome), para obter dados públicos solicitados.</li>
+        <li><strong>Provedores de pagamento</strong> — quando você contratar serviços pagos fora do fluxo de IAP (ex.: pedidos com PIX), conforme o fluxo do pedido.</li>
+      </ul>
+      <p>
+        Não vendemos seus dados pessoais. O compartilhamento ocorre para operar o App,
+        cumprir obrigações legais ou com o seu consentimento, quando exigido.
+      </p>
+
+      <h2>5. Armazenamento e retenção</h2>
+      <ul>
+        <li>Dados locais (histórico/favoritos) permanecem no dispositivo até você limpá-los ou desinstalar o App.</li>
+        <li>Dados de perfil, pedidos e scores no backend são mantidos enquanto a conta/perfil existir ou pelo prazo necessário à prestação do serviço, obrigações legais e defesa de direitos.</li>
+        <li>Logs de diagnóstico e analytics seguem as políticas de retenção dos respectivos provedores.</li>
+      </ul>
+
+      <h2>6. Segurança</h2>
+      <p>
+        Adotamos medidas técnicas e organizacionais razoáveis (autenticação, controle
+        de acesso, RLS no backend, comunicação criptografada quando aplicável) para
+        proteger os dados. Nenhum sistema é 100% seguro; recomendamos manter o
+        sistema operacional e o App atualizados.
+      </p>
+
+      <h2>7. Seus direitos (LGPD)</h2>
+      <p>Você pode solicitar:</p>
+      <ul>
+        <li>confirmação de tratamento e acesso aos dados;</li>
+        <li>correção de dados incompletos, inexatos ou desatualizados;</li>
+        <li>anonimização, bloqueio ou eliminação de dados desnecessários;</li>
+        <li>portabilidade, quando aplicável;</li>
+        <li>informação sobre compartilhamentos;</li>
+        <li>revogação de consentimento, quando o tratamento se basear nele;</li>
+        <li>eliminação dos dados pessoais tratados com o seu consentimento, observadas as hipóteses legais de retenção.</li>
+      </ul>
+      <p>
+        Para exercer esses direitos, use o canal de suporte do App (WhatsApp / suporte
+        da loja). Podemos solicitar informações razoáveis para confirmar sua identidade
+        e o vínculo com o dispositivo/conta.
+      </p>
+
+      <h2>8. Exclusão de conta e dados</h2>
+      <p>
+        O App utiliza autenticação anônima vinculada ao dispositivo/perfil. Para
+        solicitar a exclusão da conta e dos dados associados no backend (perfil,
+        pedidos vinculados, scores etc.), entre em contato pelo suporte informando
+        que deseja a exclusão.
+      </p>
+      <p>
+        Dados armazenados apenas no aparelho (histórico e favoritos locais) podem
+        ser removidos desinstalando o App ou limpando os dados do aplicativo nas
+        configurações do sistema.
+      </p>
+      <p>
+        Assinaturas ativas devem ser canceladas diretamente na Apple App Store ou
+        Google Play; a exclusão de dados do App não cancela automaticamente a cobrança
+        da loja.
+      </p>
+
+      <h2>9. Crianças e adolescentes</h2>
+      <p>
+        O App não é direcionado a crianças e não faz parte do programa Made for Kids /
+        Families. Não coletamos intencionalmente dados de menores de 13 anos.
+      </p>
+
+      <h2>10. Transferência internacional</h2>
+      <p>
+        Alguns prestadores (ex.: Google Firebase, Apple, Google Play, RevenueCat)
+        podem processar dados em servidores fora do Brasil. Nesses casos, o tratamento
+        ocorre conforme as salvaguardas aplicáveis e as políticas desses provedores.
+      </p>
+
+      <h2>11. Permissões do dispositivo</h2>
+      <ul>
+        <li><strong>Internet</strong> — consultas, sync e serviços online.</li>
+        <li><strong>Notificações</strong> — avisos do App, se autorizadas.</li>
+        <li><strong>Contatos</strong> — apenas para salvar contato de empresa, se você permitir.</li>
+      </ul>
+
+      <h2>12. Alterações desta Política</h2>
+      <p>
+        Podemos atualizar esta Política periodicamente. A data de “Última atualização”
+        será revisada. O uso contínuo do App após a publicação da versão atualizada
+        indica ciência das mudanças, quando permitido pela legislação aplicável.
+      </p>
+
+      <h2>13. Fontes de dados públicos e limitação</h2>
+      <p>
+        Informações cadastrais de CNPJ/MEI exibidas no App são de fontes públicas /
+        agregadores de dados públicos e têm caráter informativo. Podem estar
+        desatualizadas. Para decisões críticas, confirme sempre nos canais oficiais,
+        inclusive em
+        <a href="https://www.gov.br/receitafederal" rel="noopener noreferrer" target="_blank">gov.br/receitafederal</a>.
+      </p>
+
+      <footer>
+        Hub do PJ — Consulta CNPJ Empresas<br />
+        Documento destinado à publicação web e referência nas lojas (Privacy Policy URL).
+      </footer>
+    </article>
+  </main>
+</body>
+</html>

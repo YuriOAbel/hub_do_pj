@@ -104,7 +104,7 @@ async function findPayment(
   if (chargeId) {
     const { data } = await supabase
       .from('payments')
-      .select('id, order_id')
+      .select('id')
       .eq('pagarme_charge_id', chargeId)
       .maybeSingle();
 
@@ -114,32 +114,46 @@ async function findPayment(
   if (pagarmeOrderId) {
     const { data: order } = await supabase
       .from('orders')
-      .select('id')
+      .select('id, payment_id')
       .eq('pagarme_order_id', pagarmeOrderId)
       .maybeSingle();
 
-    if (order) {
+    if (order?.payment_id) {
       const { data } = await supabase
         .from('payments')
-        .select('id, order_id')
-        .eq('order_id', order.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .select('id')
+        .eq('id', order.payment_id)
         .maybeSingle();
 
       if (data) return data;
+    }
+
+    // Fallback: metadata.orderId may be our orders.id
+    if (event.data.metadata?.orderId) {
+      const { data: orderById } = await supabase
+        .from('orders')
+        .select('id, payment_id')
+        .eq('id', event.data.metadata.orderId)
+        .maybeSingle();
+
+      if (orderById?.payment_id) {
+        return { id: orderById.payment_id };
+      }
     }
   }
 
   return null;
 }
 
-async function markOrderPaid(supabase: ReturnType<typeof createClient>, paymentId: string, orderId: string) {
+async function markPaymentPaid(
+  supabase: ReturnType<typeof createClient>,
+  paymentId: string,
+) {
   const paidAt = new Date().toISOString();
 
   const { error: paymentError } = await supabase
     .from('payments')
-    .update({ status: 'paid', paid_at: paidAt })
+    .update({ status: 'paid', paid_at: paidAt, is_active: true })
     .eq('id', paymentId);
 
   if (paymentError) throw paymentError;
@@ -147,15 +161,18 @@ async function markOrderPaid(supabase: ReturnType<typeof createClient>, paymentI
   const { error: orderError } = await supabase
     .from('orders')
     .update({ payment_status: 'paid', status: 'processando' })
-    .eq('id', orderId);
+    .eq('payment_id', paymentId);
 
   if (orderError) throw orderError;
 }
 
-async function markOrderFailed(supabase: ReturnType<typeof createClient>, paymentId: string, orderId: string) {
+async function markPaymentFailed(
+  supabase: ReturnType<typeof createClient>,
+  paymentId: string,
+) {
   const { error: paymentError } = await supabase
     .from('payments')
-    .update({ status: 'failed' })
+    .update({ status: 'failed', is_active: false })
     .eq('id', paymentId);
 
   if (paymentError) throw paymentError;
@@ -163,7 +180,7 @@ async function markOrderFailed(supabase: ReturnType<typeof createClient>, paymen
   const { error: orderError } = await supabase
     .from('orders')
     .update({ payment_status: 'failed' })
-    .eq('id', orderId);
+    .eq('payment_id', paymentId);
 
   if (orderError) throw orderError;
 }
@@ -190,11 +207,10 @@ async function handlePaidEvent(event: PagarmeWebhookEvent) {
   console.log('Pagamento confirmado:', {
     eventType: event.type,
     paymentId: payment.id,
-    orderId: payment.order_id,
     email: event.data.customer?.email,
   });
 
-  await markOrderPaid(supabase, payment.id, payment.order_id);
+  await markPaymentPaid(supabase, payment.id);
 }
 
 async function handleFailedEvent(event: PagarmeWebhookEvent) {
@@ -209,10 +225,9 @@ async function handleFailedEvent(event: PagarmeWebhookEvent) {
   console.log('Pagamento falhou:', {
     eventType: event.type,
     paymentId: payment.id,
-    orderId: payment.order_id,
   });
 
-  await markOrderFailed(supabase, payment.id, payment.order_id);
+  await markPaymentFailed(supabase, payment.id);
 }
 
 async function handleRefundedEvent(event: PagarmeWebhookEvent) {
@@ -227,10 +242,9 @@ async function handleRefundedEvent(event: PagarmeWebhookEvent) {
   console.log('Reembolso processado — marcando como failed:', {
     eventType: event.type,
     paymentId: payment.id,
-    orderId: payment.order_id,
   });
 
-  await markOrderFailed(supabase, payment.id, payment.order_id);
+  await markPaymentFailed(supabase, payment.id);
 }
 
 serve(async (req) => {

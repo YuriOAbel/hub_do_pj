@@ -1,30 +1,28 @@
 {
   "project_info": {
-    "project_number": "894074953486",
-    "firebase_url": "https://consulta-cnpj-1196c.firebaseio.com",
-    "project_id": "consulta-cnpj-1196c",
-    "storage_bucket": "consulta-cnpj-1196c.firebasestorage.app"
+    "project_number": "187808051701",
+    "project_id": "hub-do-pj---consulta-empresas",
+    "storage_bucket": "hub-do-pj---consulta-empresas.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:894074953486:android:c5f731d097e0c0e777c15f",
+        "mobilesdk_app_id": "1:187808051701:android:b5cde34b695ffb6b4b30bc",
         "android_client_info": {
-          "package_name": "br.com.cgy.consulta_cnpj_empresas"
+          "package_name": "com.hubdopj.consultaempresas"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBBfqtCtitG5vjRVjlZyZXXKAOiD-sReko"
+          "current_key": "AIzaSyDke-XEh0s2oSx-4DSMv9mwl7Tll6tG6JM"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": []
         }
-      },
-      "admob_app_id": "ca-app-pub-4966404553667877~6697915180"
+      }
     }
   ],
   "configuration_version": "1"

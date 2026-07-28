@@ -63,9 +63,9 @@ class HomeCategoryChips extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const chips = <(HomeChipAction, String, IconData)>[
-      (HomeChipAction.consultar, 'Consultar CNPJ', Icons.search),
-      (HomeChipAction.monitorar, 'Monitorar', Icons.sensors),
+      (HomeChipAction.consultar, 'Consultar PJ', Icons.search),
       (HomeChipAction.cnds, 'Pedidos', Icons.description_outlined),
+      (HomeChipAction.monitorar, 'Monitorar', Icons.sensors),
       (HomeChipAction.restricoes, 'Restrições', Icons.lock_outline),
       (HomeChipAction.historico, 'Histórico', Icons.history),
       (HomeChipAction.favoritos, 'Favoritos', Icons.favorite_border),

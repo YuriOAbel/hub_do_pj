@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/app_notification_model.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class NotificationContentScreen extends StatelessWidget {
@@ -28,7 +29,8 @@ class NotificationContentScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
+      body: AppScreenFade(
+        child: SingleChildScrollView(
         padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,6 +53,7 @@ class NotificationContentScreen extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1,7 +1,7 @@
 name: consulta_cnpj_new
 description: Consulta CNPJ — cadastral lookup for Brazilian companies.
 publish_to: 'none'
-version: 4.0.1+51
+version: 4.0.3+53
 
 environment:
   sdk: ^3.10.4
@@ -40,8 +40,8 @@ dependencies:
   firebase_messaging: ">=16.2.0 <16.2.1"
   firebase_remote_config: ">=6.4.0 <6.5.0"
   firebase_crashlytics: ">=5.1.0 <5.2.0"
-  flutter_local_notifications: ^19.4.0
-  purchases_flutter: ^8.6.1
+  # Test Store (`test_` key) requires Flutter SDK >= 9.8.0
+  purchases_flutter: ^9.10.7
   flutter_contacts: ^1.1.9+2
   intl: ^0.20.2
   package_info_plus: ^8.3.0
@@ -51,6 +51,7 @@ dependencies:
   # 12.4+ calls isiOSAppOnVision (needs Xcode >= 26.1.1). Pin until Xcode upgrade.
   device_info_plus: 12.3.0
   flutter_secure_storage: ^9.2.4
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/icons/
     - assets/images/
     - assets/config/

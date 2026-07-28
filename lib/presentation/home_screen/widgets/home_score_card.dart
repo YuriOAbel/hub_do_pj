@@ -3,53 +3,59 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/config/premium_access.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/company_score_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/company_score_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_loading.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/company_score_number.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class HomeScoreCard extends ConsumerWidget {
   const HomeScoreCard({
     super.key,
-    required this.onStart,
+    required this.onEmptyTap,
+    required this.onSingleTap,
+    required this.onMultiTap,
   });
 
-  final VoidCallback onStart;
+  final VoidCallback onEmptyTap;
+  final void Function(CompanyScoreResult result) onSingleTap;
+  final VoidCallback onMultiTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scoreAsync = ref.watch(companyScoreLatestThisMonthProvider);
+    final scoresAsync = ref.watch(companyScoresThisMonthProvider);
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      transitionBuilder: (child, animation) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-      child: scoreAsync.when(
+    return AppAsyncFadeSwitcher(
+      child: scoresAsync.when(
         loading: () => const _ScoreLoadingCard(key: ValueKey('score-loading')),
         error: (_, _) => _ScoreErrorCard(
           key: const ValueKey('score-error'),
-          onRetry: () =>
-              ref.invalidate(companyScoreLatestThisMonthProvider),
+          onRetry: () => ref.invalidate(companyScoresThisMonthProvider),
         ),
-        data: (result) {
-          if (result != null) {
+        data: (scores) {
+          if (scores.length >= 2) {
+            return _MultiScoreCard(
+              key: ValueKey('score-multi-${scores.length}'),
+              count: scores.length,
+              onTap: onMultiTap,
+            );
+          }
+          if (scores.length == 1) {
+            final result = scores.first;
             return _FilledScoreCard(
               key: ValueKey('score-filled-${result.id}'),
               result: result,
-              onTap: onStart,
+              onTap: () => onSingleTap(result),
             );
           }
           return _EmptyScoreCard(
             key: const ValueKey('score-empty'),
-            onStart: onStart,
+            onStart: onEmptyTap,
           );
         },
       ),
@@ -71,6 +77,46 @@ BoxDecoration _scoreCardDecoration() {
   );
 }
 
+class _ScoreHeader extends StatelessWidget {
+  const _ScoreHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          Icons.shield_outlined,
+          size: 5.w,
+          color: AppTheme.primary,
+        ),
+        SizedBox(width: 2.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Score empresarial',
+                style: GoogleFonts.inter(
+                  fontSize: (AppTypography.fontSubtitle + 1).sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                'Visão de Conformidade',
+                style: GoogleFonts.inter(
+                  fontSize: (AppTypography.fontBody + 2).sp,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ScoreLoadingCard extends StatelessWidget {
   const _ScoreLoadingCard({super.key});
 
@@ -80,21 +126,13 @@ class _ScoreLoadingCard extends StatelessWidget {
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.5.h),
       decoration: _scoreCardDecoration().copyWith(color: AppTheme.surface),
-      child: Center(
-        child: LoadingAnimationWidget.staggeredDotsWave(
-          color: AppTheme.primary,
-          size: 40,
-        ),
-      ),
+      child: const AppAsyncLoading(size: 40),
     );
   }
 }
 
 class _ScoreErrorCard extends StatelessWidget {
-  const _ScoreErrorCard({
-    super.key,
-    required this.onRetry,
-  });
+  const _ScoreErrorCard({super.key, required this.onRetry});
 
   final VoidCallback onRetry;
 
@@ -120,11 +158,7 @@ class _ScoreErrorCard extends StatelessWidget {
           IconButton(
             onPressed: onRetry,
             tooltip: 'Tentar novamente',
-            icon: Icon(
-              Icons.refresh,
-              size: 7.w,
-              color: AppTheme.primary,
-            ),
+            icon: Icon(Icons.refresh, size: 7.w, color: AppTheme.primary),
           ),
         ],
       ),
@@ -133,10 +167,7 @@ class _ScoreErrorCard extends StatelessWidget {
 }
 
 class _EmptyScoreCard extends StatelessWidget {
-  const _EmptyScoreCard({
-    super.key,
-    required this.onStart,
-  });
+  const _EmptyScoreCard({super.key, required this.onStart});
 
   final VoidCallback onStart;
 
@@ -155,34 +186,7 @@ class _EmptyScoreCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.shield_outlined, size: 5.w, color: AppTheme.primary),
-                  SizedBox(width: 2.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Score empresarial',
-                          style: GoogleFonts.inter(
-                            fontSize: (AppTypography.fontSubtitle + 1).sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Visão de Conformidade',
-                          style: GoogleFonts.inter(
-                            fontSize: (AppTypography.fontBody + 2).sp,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              const _ScoreHeader(),
               SizedBox(height: 1.5.h),
               Text(
                 'Inicie analise de score de empresas com a hub do pj.',
@@ -197,6 +201,64 @@ class _EmptyScoreCard extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 child: Text(
                   'Iniciar >',
+                  style: GoogleFonts.inter(
+                    fontSize: (AppTypography.fontBody + 1).sp,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppTheme.primary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MultiScoreCard extends StatelessWidget {
+  const _MultiScoreCard({
+    super.key,
+    required this.count,
+    required this.onTap,
+  });
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppTheme.surface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+          decoration: _scoreCardDecoration(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _ScoreHeader(),
+              SizedBox(height: 1.5.h),
+              Text(
+                'Você possui $count análises disponíveis, acesse e veja.',
+                style: GoogleFonts.inter(
+                  fontSize: AppTypography.fontSubtitle.sp,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.textPrimary,
+                  height: 1.35,
+                ),
+              ),
+              SizedBox(height: 1.5.h),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'Ver análises >',
                   style: GoogleFonts.inter(
                     fontSize: (AppTypography.fontBody + 1).sp,
                     fontWeight: FontWeight.w600,
@@ -243,34 +305,7 @@ class _FilledScoreCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Icon(Icons.shield_outlined, size: 5.w, color: AppTheme.primary),
-                  SizedBox(width: 2.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Score empresarial',
-                          style: GoogleFonts.inter(
-                            fontSize: (AppTypography.fontSubtitle + 1).sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          'Visão de Conformidade',
-                          style: GoogleFonts.inter(
-                            fontSize: (AppTypography.fontBody + 2).sp,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              const _ScoreHeader(),
               SizedBox(height: 1.8.h),
               if (unlocked)
                 CompanyScoreNumber(
@@ -281,7 +316,7 @@ class _FilledScoreCard extends ConsumerWidget {
                 )
               else
                 ImageFiltered(
-                  imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                  imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: CompanyScoreNumber(
                     score: result.score,
                     showScoreLabel: true,

@@ -105,6 +105,7 @@ class FirebaseService {
   Future<void> logEvent({
     required String eventKey,
     Map<String, Object>? parameters,
+    List<Map<String, Object>>? items,
   }) async {
     if (!_allowedEvents.contains(eventKey)) {
       if (kDebugMode) {
@@ -113,10 +114,24 @@ class FirebaseService {
       return;
     }
     try {
-      await _analytics?.logEvent(name: eventKey, parameters: parameters);
+      await _analytics?.logEvent(
+        name: eventKey,
+        parameters: parameters,
+        items: items?.map(_analyticsEventItem).toList(),
+      );
     } catch (e) {
       debugPrint('FirebaseService.logEvent: $e');
     }
+  }
+
+  AnalyticsEventItem _analyticsEventItem(Map<String, Object> map) {
+    return AnalyticsEventItem(
+      itemId: map['item_id'] as String?,
+      itemName: map['item_name'] as String?,
+      price: (map['price'] as num?)?.toDouble(),
+      currency: map['currency'] as String?,
+      quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+    );
   }
 
   String getString(String key, {String fallback = ''}) {

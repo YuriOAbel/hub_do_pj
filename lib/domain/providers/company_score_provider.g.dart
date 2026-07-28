@@ -6,7 +6,7 @@ part of 'company_score_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$companyScoreFlowHash() => r'ac4212b635b6ceed437270e9a2148c1e80fbaf0c';
+String _$companyScoreFlowHash() => r'b095c6ba3f1d8000837c55e70a747d9470164392';
 
 /// See also [CompanyScoreFlow].
 @ProviderFor(CompanyScoreFlow)
@@ -22,26 +22,26 @@ final companyScoreFlowProvider =
     );
 
 typedef _$CompanyScoreFlow = AutoDisposeNotifier<CompanyScoreState>;
-String _$companyScoreLatestThisMonthHash() =>
-    r'68bc4a0b00622d9fcf3e865e403e2eb12e5facd0';
+String _$companyScoresThisMonthHash() =>
+    r'fb65aaf8c0e70f25f30a2d09a780d05b6481e9e9';
 
-/// See also [CompanyScoreLatestThisMonth].
-@ProviderFor(CompanyScoreLatestThisMonth)
-final companyScoreLatestThisMonthProvider =
+/// See also [CompanyScoresThisMonth].
+@ProviderFor(CompanyScoresThisMonth)
+final companyScoresThisMonthProvider =
     AutoDisposeAsyncNotifierProvider<
-      CompanyScoreLatestThisMonth,
-      CompanyScoreResult?
+      CompanyScoresThisMonth,
+      List<CompanyScoreResult>
     >.internal(
-      CompanyScoreLatestThisMonth.new,
-      name: r'companyScoreLatestThisMonthProvider',
+      CompanyScoresThisMonth.new,
+      name: r'companyScoresThisMonthProvider',
       debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
           ? null
-          : _$companyScoreLatestThisMonthHash,
+          : _$companyScoresThisMonthHash,
       dependencies: null,
       allTransitiveDependencies: null,
     );
 
-typedef _$CompanyScoreLatestThisMonth =
-    AutoDisposeAsyncNotifier<CompanyScoreResult?>;
+typedef _$CompanyScoresThisMonth =
+    AutoDisposeAsyncNotifier<List<CompanyScoreResult>>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

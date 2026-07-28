@@ -33,8 +33,8 @@ Recomendação: o MCP **não** implementa HTTP das stores do zero. Ele chama **F
 ### Contas e apps
 
 - [ ] Conta [Apple Developer](https://developer.apple.com) (pago) + app criado no [App Store Connect](https://appstoreconnect.apple.com)
-- [ ] Conta [Google Play Console](https://play.google.com/console) + app criado (package: `br.com.cgy.consulta_cnpj_empresas`)
-- [ ] Bundle ID iOS definido e alinhado ao App Store Connect (hoje o projeto ainda usa placeholder `com.example.consultaCnpjNew` — corrigir antes do primeiro upload; ver `docs/IOS_SETUP.md`)
+- [ ] Conta [Google Play Console](https://play.google.com/console) + app criado (package: `com.hubdopj.consultaempresas`)
+- [ ] Bundle ID iOS definido e alinhado ao App Store Connect (`com.hubdopj.consultaempresas`; ver `docs/IOS_SETUP.md`)
 - [ ] Mac com Xcode (obrigatório para build/assinatura iOS)
 - [ ] Flutter SDK + Android SDK instalados
 - [ ] Node 20+ **ou** Python 3.11+ (para o servidor MCP)
@@ -93,7 +93,7 @@ Sem isso, upload via API falha com 403.
 ### 1.4 Variáveis de ambiente
 
 ```bash
-export PLAY_PACKAGE_NAME="br.com.cgy.consulta_cnpj_empresas"
+export PLAY_PACKAGE_NAME="com.hubdopj.consultaempresas"
 export PLAY_TRACK="closed"   # nome do track de teste fechado no Console
 export GOOGLE_APPLICATION_CREDENTIALS="$HOME/.config/consulta-cnpj/play-service-account.json"
 ```
@@ -138,7 +138,7 @@ export ASC_KEY_ID="XXXXXXXXXX"
 export ASC_ISSUER_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 export ASC_KEY_PATH="$HOME/.config/consulta-cnpj/AuthKey_XXXXXXXXXX.p8"
 export ASC_APP_APPLE_ID="0000000000"   # Apple ID numérico do app no Connect
-export ASC_BUNDLE_ID="br.com.cgy.consultaCnpjEmpresas"  # o ID real que você definir
+export ASC_BUNDLE_ID="com.hubdopj.consultaempresas"  # o ID real que você definir
 ```
 
 O Apple ID numérico fica em App Store Connect → app → **App Information** → Apple ID.
@@ -154,8 +154,7 @@ Valide o pipeline manual uma vez. Só depois automatize.
 ```bash
 cd /Users/yuriabel/Documents/projetos/consulta_cnpj_new
 
-flutter build appbundle --release \
-  --dart-define=RC_API_KEY=YOUR_RC_KEY
+flutter build appbundle --release
 ```
 
 Saída típica:
@@ -170,7 +169,6 @@ Assinatura: configure `key.properties` / keystore no Android (release signing). 
 
 ```bash
 flutter build ipa --release \
-  --dart-define=RC_API_KEY=YOUR_RC_KEY \
   --export-options-plist=ios/ExportOptions.plist
 ```
 
@@ -368,14 +366,14 @@ Arquivo de config MCP do Cursor (UI: **Settings → MCP → Add**, ou JSON do us
       "args": ["tsx", "/Users/yuriabel/tools/store-mcp/src/index.ts"],
       "env": {
         "REPO_ROOT": "/Users/yuriabel/Documents/projetos/consulta_cnpj_new",
-        "PLAY_PACKAGE_NAME": "br.com.cgy.consulta_cnpj_empresas",
+        "PLAY_PACKAGE_NAME": "com.hubdopj.consultaempresas",
         "PLAY_TRACK": "closed",
         "GOOGLE_APPLICATION_CREDENTIALS": "/Users/yuriabel/.config/consulta-cnpj/play-service-account.json",
         "ASC_KEY_ID": "XXXXXXXXXX",
         "ASC_ISSUER_ID": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         "ASC_KEY_PATH": "/Users/yuriabel/.config/consulta-cnpj/AuthKey_XXXXXXXXXX.p8",
         "ASC_APP_APPLE_ID": "0000000000",
-        "ASC_BUNDLE_ID": "br.com.cgy.consultaCnpjEmpresas"
+        "ASC_BUNDLE_ID": "com.hubdopj.consultaempresas"
       }
     }
   }
@@ -396,7 +394,7 @@ Depois:
 ### Android → teste fechado
 
 1. Bump `versionCode` / `versionName` em `android/app/build.gradle.kts`
-2. `flutter build appbundle --release --dart-define=RC_API_KEY=...`
+2. `flutter build appbundle --release`
 3. No Cursor: chamar `upload_android_closed` (path do AAB)
 4. Play Console → Teste fechado → verificar release
 5. Testers atualizam pelo link do track
@@ -404,7 +402,7 @@ Depois:
 ### iOS → TestFlight
 
 1. Bump `CFBundleShortVersionString` / `CFBundleVersion` (Xcode ou `pubspec` + flutter)
-2. `flutter build ipa --release --dart-define=RC_API_KEY=...`
+2. `flutter build ipa --release`
 3. No Cursor: chamar `upload_ios_testflight`
 4. App Store Connect → TestFlight → aguardar processamento
 5. Adicionar build ao grupo Internal (se a lane não distribuir sozinha)

@@ -29,10 +29,6 @@ class FirebaseAnalyticsHelper {
   Future<void> logEnviarEmail() =>
       _firebase.logEvent(eventKey: 'enviar_email');
   Future<void> logWhats() => _firebase.logEvent(eventKey: 'whats');
-  Future<void> logAbriuPagePremium() =>
-      _firebase.logEvent(eventKey: 'abriu_page_premium');
-  Future<void> logComprouPagePremium() =>
-      _firebase.logEvent(eventKey: 'comprou_page_premium');
   Future<void> logClicouDesbloqueioPremium() =>
       _firebase.logEvent(eventKey: 'clicou_desbloqueio_premium');
   Future<void> logAvaliou() => _firebase.logEvent(eventKey: 'avaliou');
@@ -68,4 +64,113 @@ class FirebaseAnalyticsHelper {
       _firebase.logEvent(eventKey: 'onboarding_paywall_skipped');
   Future<void> logInAppReviewRequested() =>
       _firebase.logEvent(eventKey: 'in_app_review_requested');
+
+  Future<void> logTutorialComplete() =>
+      _firebase.logEvent(eventKey: 'tutorial_complete');
+
+  Future<void> logViewItemList({
+    required String itemListId,
+    required String itemListName,
+  }) =>
+      _firebase.logEvent(
+        eventKey: 'view_item_list',
+        parameters: {
+          'item_list_id': itemListId,
+          'item_list_name': itemListName,
+        },
+      );
+
+  Future<void> logViewItem({
+    required String itemId,
+    required String itemName,
+  }) =>
+      _firebase.logEvent(
+        eventKey: 'view_item',
+        parameters: {
+          'item_id': itemId,
+          'item_name': itemName,
+        },
+        items: [
+          {'item_id': itemId, 'item_name': itemName},
+        ],
+      );
+
+  Future<void> logViewCart({required String origin}) => _firebase.logEvent(
+        eventKey: 'view_cart',
+        parameters: {'origin': origin},
+      );
+
+  Future<void> logAddToCart({
+    required double value,
+    required String currency,
+    required String itemId,
+    required String itemName,
+  }) =>
+      _firebase.logEvent(
+        eventKey: 'add_to_cart',
+        parameters: {
+          'value': value,
+          'currency': currency,
+          'item_id': itemId,
+          'item_name': itemName,
+        },
+        items: [
+          {
+            'item_id': itemId,
+            'item_name': itemName,
+            'price': value,
+            'currency': currency,
+          },
+        ],
+      );
+
+  Future<void> logBeginCheckout({
+    required double value,
+    required String currency,
+    required String itemId,
+    required String itemName,
+  }) =>
+      _firebase.logEvent(
+        eventKey: 'begin_checkout',
+        parameters: {
+          'value': value,
+          'currency': currency,
+          'item_id': itemId,
+          'item_name': itemName,
+        },
+        items: [
+          {
+            'item_id': itemId,
+            'item_name': itemName,
+            'price': value,
+            'currency': currency,
+          },
+        ],
+      );
+
+  Future<void> logPurchase({
+    required double value,
+    required String currency,
+    required String transactionId,
+    required String itemId,
+    required String itemName,
+  }) =>
+      _firebase.logEvent(
+        eventKey: 'purchase',
+        parameters: {
+          'value': value,
+          'currency': currency,
+          'transaction_id': transactionId,
+          'item_id': itemId,
+          'item_name': itemName,
+        },
+        items: [
+          {
+            'item_id': itemId,
+            'item_name': itemName,
+            'price': value,
+            'currency': currency,
+          },
+        ],
+      );
 }

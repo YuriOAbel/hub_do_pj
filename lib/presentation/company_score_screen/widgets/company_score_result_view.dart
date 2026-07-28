@@ -3,45 +3,30 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/config/premium_access.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/company_score_model.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
+import 'package:consulta_cnpj_new/domain/providers/company_score_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/company_score_number.dart';
-import 'package:consulta_cnpj_new/routes/app_routes.dart';
-import 'package:consulta_cnpj_new/services/share_app_service.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class CompanyScoreResultView extends ConsumerWidget {
-  const CompanyScoreResultView({
-    super.key,
-    required this.result,
-  });
+  const CompanyScoreResultView({super.key, required this.result});
 
   final CompanyScoreResult result;
-
-  Future<void> _share(BuildContext context) async {
-    final box = context.findRenderObject() as RenderBox?;
-    final origin = box != null
-        ? box.localToGlobal(Offset.zero) & box.size
-        : ShareAppService.fallbackOrigin;
-    await Share.share(
-      'Esse é meu score no app Hub do PJ: Consulta Empresas.\n'
-      '${result.score}/100',
-      sharePositionOrigin: origin,
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(premiumStatusProvider);
-    final unlocked = isPremiumActive(ref);
-    final nextUpdate =
-        formatScoreUpdateDate(nextScoreUpdateDate(result.createdAt));
+    final unlocked = hasPlanTier(ref, 2);
+    final nextUpdate = formatScoreUpdateDate(
+      nextScoreUpdateDate(result.createdAt),
+    );
     final hasGaps = result.gaps.isNotEmpty;
     final statusColor = hasGaps ? AppTheme.warning : AppTheme.success;
 
@@ -98,7 +83,7 @@ class CompanyScoreResultView extends ConsumerWidget {
             child: unlocked
                 ? CompanyScoreNumber(score: result.score, color: statusColor)
                 : ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                    imageFilter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
                     child: CompanyScoreNumber(
                       score: result.score,
                       color: statusColor,
@@ -117,7 +102,7 @@ class CompanyScoreResultView extends ConsumerWidget {
                     ),
                   )
                 : ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+                    imageFilter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                     child: Text(
                       result.bandLabel,
                       style: GoogleFonts.inter(
@@ -191,10 +176,13 @@ class CompanyScoreResultView extends ConsumerWidget {
             SizedBox(height: 2.h),
             CnpjPrimaryButton(
               onPressed: () {
-                Navigator.pushNamed(
+                PremiumUpsellSheet.show(
                   context,
-                  AppRoutes.paywall,
-                  arguments: PaywallOrigin.score,
+                  PaywallOrigin.score,
+                  suggestedTier: 2,
+                  limitMessage:
+                      'Para ver o score completo, ative o plano Compliance light ou superior.',
+                  suggestedPlanTitle: 'Compliance light',
                 );
               },
               child: Text(
@@ -205,29 +193,20 @@ class CompanyScoreResultView extends ConsumerWidget {
                 ),
               ),
             ),
-          ] else ...[
+          ] else
             CnpjPrimaryButton(
-              onPressed: () => _share(context),
+              onPressed: () {
+                ref.read(companyScoreFlowProvider.notifier).startNewQuiz();
+              },
               child: Text(
-                'Compartilhar',
+                'Calcular Score para novo CNPJ',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-            SizedBox(height: 1.h),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Voltar',
-                style: GoogleFonts.inter(
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ),
-          ],
           SizedBox(height: 2.h),
         ],
       ),

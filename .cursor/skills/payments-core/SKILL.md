@@ -49,12 +49,20 @@ View → Provider/Notifier → Service
 
 ```dart
 class RevenueCatConfig {
-  static const String apiKey = String.fromEnvironment('RC_API_KEY');
-  static const String offeringId = 'default'; // or remote-config-driven
-  static const bool isDebug = bool.fromEnvironment('RC_DEBUG', defaultValue: false);
+  static String get iosApiKey =>
+      dotenv.env['RC_IOS_API_KEY']?.trim() ?? '';
+  static String get androidApiKey =>
+      dotenv.env['RC_ANDROID_API_KEY']?.trim() ?? '';
+  static String get testApiKey =>
+      dotenv.env['RC_TEST_API_KEY']?.trim() ?? '';
+  static const String prodOfferingId = 'hub_pj_cp_prod_mensal';
+  // Debug / RC_USE_TEST → testApiKey; else iOS/Android store key. RC_API_KEY overrides all.
+  static String get apiKey { /* platform + test selection */ }
   static bool get useMock => apiKey.isEmpty;
 }
 ```
+
+Keys live in root `.env` (flutter_dotenv). See `env-config` skill.
 
 ---
 
@@ -170,14 +178,19 @@ class PaywallService {
   }
 
   List<PlanModel> _mapOffering(Offering offering) {
-    return offering.availablePackages.map((pkg) {
-      return PlanModel(
-        id: pkg.identifier,
-        title: pkg.storeProduct.title,
-        priceText: pkg.storeProduct.priceString,
-        isSelected: pkg == offering.availablePackages.first,
-      );
-    }).toList();
+    // Copy UI copy from offering.metadata keys plan_1 / plan_2 / plan_3
+    // (title, subtitle, badgeText, isSelected). Price stays from StoreProduct.
+    // Same metadata contract on test + prod offerings.
+    return [
+      for (var i = 0; i < offering.availablePackages.length; i++)
+        PlanModel(
+          id: offering.availablePackages[i].identifier,
+          title: /* metadata plan_{i+1}.title ?? */ offering
+              .availablePackages[i].storeProduct.title,
+          priceText: offering.availablePackages[i].storeProduct.priceString,
+          tier: i + 1,
+        ),
+    ];
   }
 
   /// Returns `true` on success, `false` on user cancel, throws on real error.

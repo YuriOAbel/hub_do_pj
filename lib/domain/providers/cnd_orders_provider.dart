@@ -26,6 +26,12 @@ class CndOrders extends _$CndOrders {
       () => CndOrdersService.instance.listOrdersForCurrentUser(),
     );
   }
+
+  Future<CndOrderModel> markOrderPaid(String orderId) async {
+    final order = await CndOrdersService.instance.markOrderPaid(orderId);
+    await refresh();
+    return order;
+  }
 }
 
 @riverpod

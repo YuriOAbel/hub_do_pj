@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/domain/providers/feature_waitlist_provider.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -45,7 +46,7 @@ class _NotAvailableScreenState extends ConsumerState<NotAvailableScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Não foi possível registrar o aviso. Tente de novo.'),
+          content: Text('Ops, tivemos um problema... tente novamente'),
         ),
       );
     }
@@ -58,7 +59,8 @@ class _NotAvailableScreenState extends ConsumerState<NotAvailableScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Indisponível')),
-      body: Padding(
+      body: AppScreenFade(
+        child: Padding(
         padding: EdgeInsets.all(6.w),
         child: Column(
           children: [
@@ -112,6 +114,7 @@ class _NotAvailableScreenState extends ConsumerState<NotAvailableScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

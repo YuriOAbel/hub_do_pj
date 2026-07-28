@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:maps_launcher/maps_launcher.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
@@ -11,6 +12,31 @@ class ResultAboutTab extends StatelessWidget {
   const ResultAboutTab({super.key, required this.cnpj});
 
   final CnpjModel cnpj;
+
+  static final _currencyFormat = NumberFormat.currency(
+    locale: 'pt_BR',
+    symbol: r'R$',
+  );
+
+  /// Formats ReceitaWS capital_social (`100000.00` / `100.000,00`) as R$.
+  String? _formatCapitalSocial(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final cleaned = raw.replaceAll(RegExp(r'[^\d,.]'), '');
+    if (cleaned.isEmpty) return null;
+
+    final double? value;
+    if (cleaned.contains(',') && cleaned.contains('.')) {
+      value = double.tryParse(
+        cleaned.replaceAll('.', '').replaceAll(',', '.'),
+      );
+    } else if (cleaned.contains(',')) {
+      value = double.tryParse(cleaned.replaceAll(',', '.'));
+    } else {
+      value = double.tryParse(cleaned);
+    }
+    if (value == null) return raw.trim();
+    return _currencyFormat.format(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +65,7 @@ class ResultAboutTab extends StatelessWidget {
           _row('Abertura', cnpj.abertura),
           _row('Porte', cnpj.porte),
           _row('Natureza jurídica', cnpj.naturezaJuridica),
-          _row('Capital social', cnpj.capitalSocial),
+          _row('Capital social', _formatCapitalSocial(cnpj.capitalSocial)),
           SizedBox(height: 2.h),
           _mapsCard(),
         ],

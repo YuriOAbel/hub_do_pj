@@ -222,7 +222,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('id, device_id')
+      .select('id, device_id, plan_product_id')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -249,6 +249,7 @@ serve(async (req) => {
       .from('company_scores')
       .select('*')
       .eq('profile_id', user.id)
+      .eq('cnpj', cnpjDigits)
       .eq('score_month', scoreMonth)
       .maybeSingle();
 
@@ -259,6 +260,63 @@ serve(async (req) => {
 
     if (existing) {
       return jsonResponse(toApiScore(existing as Record<string, unknown>));
+    }
+
+    // New CNPJ this month — enforce plan limit (same column as restrição).
+    const planProductId =
+      typeof profile.plan_product_id === 'string' &&
+        profile.plan_product_id.trim()
+        ? profile.plan_product_id.trim()
+        : 'free';
+
+    const { data: limits, error: limitsError } = await admin
+      .from('plan_limits')
+      .select('monthly_restricao_cnpj_limit, quota_period_months')
+      .eq('plan_product_id', planProductId)
+      .maybeSingle();
+
+    if (limitsError) {
+      console.error('calculate-company-score limits:', limitsError);
+      return jsonResponse({ error: 'Erro ao carregar limites do plano' }, 500);
+    }
+
+    const limit = Number(limits?.monthly_restricao_cnpj_limit ?? 0);
+    const periodMonths = Math.max(1, Number(limits?.quota_period_months ?? 1));
+    const periodStart = new Date();
+    periodStart.setUTCMonth(periodStart.getUTCMonth() - periodMonths);
+    const periodStartIso = periodStart.toISOString();
+
+    const { data: periodScores, error: monthError } = await admin
+      .from('company_scores')
+      .select('cnpj')
+      .eq('profile_id', user.id)
+      .gte('created_at', periodStartIso);
+
+    if (monthError) {
+      console.error('calculate-company-score period scores:', monthError);
+      return jsonResponse({ error: 'Erro ao contar scores do período' }, 500);
+    }
+
+    const usedCnpjs = new Set(
+      (periodScores ?? [])
+        .map((row) => onlyDigits(String(row.cnpj ?? '')))
+        .filter((d) => d.length === 14),
+    );
+    const alreadyScored = usedCnpjs.has(cnpjDigits);
+    const used = usedCnpjs.size;
+
+    if (!alreadyScored && (limit <= 0 || used >= limit)) {
+      return jsonResponse(
+        {
+          error: 'Limite do plano atingido para score de empresas',
+          code: 'PLAN_LIMIT_REACHED',
+          planProductId,
+          limit,
+          used,
+          suggestedTier: limit <= 0 ? 2 : 3,
+        },
+        403,
+      );
     }
 
     const { score, band, gaps } = computeScore(validated);
@@ -284,6 +342,7 @@ serve(async (req) => {
           .from('company_scores')
           .select('*')
           .eq('profile_id', user.id)
+          .eq('cnpj', cnpjDigits)
           .eq('score_month', scoreMonth)
           .maybeSingle();
         if (raced) {

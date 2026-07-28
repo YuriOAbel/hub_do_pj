@@ -9,11 +9,11 @@ import 'package:consulta_cnpj_new/theme/app_theme.dart';
 class HomeHeader extends StatelessWidget {
   const HomeHeader({
     super.key,
-    required this.onNotificationsTap,
+    required this.onMenuTap,
     this.showUnreadBadge = false,
   });
 
-  final VoidCallback onNotificationsTap;
+  final VoidCallback onMenuTap;
   final bool showUnreadBadge;
 
   @override
@@ -67,10 +67,10 @@ class HomeHeader extends StatelessWidget {
           ),
           SizedBox(width: 2.w),
           _HeaderIconButton(
-            tooltip: 'Notificações',
-            icon: Icons.notifications_outlined,
+            tooltip: 'Menu',
+            icon: Icons.menu,
             iconColor: AppTheme.textPrimary,
-            onTap: onNotificationsTap,
+            onTap: onMenuTap,
             showBadge: showUnreadBadge,
           ),
         ],

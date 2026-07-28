@@ -14,6 +14,7 @@ class OnboardingService {
   static const _occupationOtherKey = 'onboarding_occupation_other';
   static const _interestsKey = 'onboarding_interests';
   static const _companyInfosKey = 'onboarding_company_infos';
+  static const _pendingCnpjKey = 'onboarding_pending_cnpj';
 
   Future<bool> isCompleted() async {
     try {
@@ -68,6 +69,64 @@ class OnboardingService {
     } catch (e) {
       debugPrint('OnboardingService.getName: $e');
       return null;
+    }
+  }
+
+  Future<void> updateName(String name) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_nameKey, name.trim());
+    } catch (e) {
+      debugPrint('OnboardingService.updateName: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> savePendingCnpj(String cnpj) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_pendingCnpjKey, cnpj.trim());
+    } catch (e) {
+      debugPrint('OnboardingService.savePendingCnpj: $e');
+      rethrow;
+    }
+  }
+
+  Future<String?> getPendingCnpj() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cnpj = prefs.getString(_pendingCnpjKey);
+      if (cnpj == null || cnpj.trim().isEmpty) return null;
+      return cnpj.trim();
+    } catch (e) {
+      debugPrint('OnboardingService.getPendingCnpj: $e');
+      return null;
+    }
+  }
+
+  Future<void> clearPendingCnpj() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_pendingCnpjKey);
+    } catch (e) {
+      debugPrint('OnboardingService.clearPendingCnpj: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> clearAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_completedKey);
+      await prefs.remove(_nameKey);
+      await prefs.remove(_personTypeKey);
+      await prefs.remove(_occupationIdKey);
+      await prefs.remove(_occupationOtherKey);
+      await prefs.remove(_interestsKey);
+      await prefs.remove(_companyInfosKey);
+      await prefs.remove(_pendingCnpjKey);
+    } catch (e) {
+      debugPrint('OnboardingService.clearAll: $e');
     }
   }
 }

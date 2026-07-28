@@ -7,6 +7,9 @@ import 'package:consulta_cnpj_new/domain/models/app_notification_model.dart';
 import 'package:consulta_cnpj_new/domain/models/notification_nav.dart';
 import 'package:consulta_cnpj_new/domain/providers/notification_list_provider.dart';
 import 'package:consulta_cnpj_new/presentation/notification_center_screen/widgets/notification_list_tile.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_error.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_loading.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class NotificationCenterScreen extends ConsumerWidget {
@@ -54,43 +57,47 @@ class NotificationCenterScreen extends ConsumerWidget {
         ),
         centerTitle: true,
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (_, _) => Center(
-          child: Text(
-            'Erro ao carregar notificações',
-            style: GoogleFonts.inter(
-              fontSize: AppTypography.fontSubtitle.sp,
-              color: AppTheme.textSecondary,
+      body: AppScreenFade(
+        child: AppAsyncFadeSwitcher(
+          child: async.when(
+            loading: () =>
+                const AppAsyncLoading(key: ValueKey('notif-loading')),
+            error: (_, _) => AppAsyncError(
+              key: const ValueKey('notif-error'),
+              onRetry: () =>
+                  ref.read(notificationListProvider.notifier).refreshList(),
             ),
-          ),
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return Center(
-              child: Text(
-                'Nenhuma notificação',
-                style: GoogleFonts.inter(
-                  fontSize: AppTypography.fontSubtitle.sp,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
-            );
-          }
-          return ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => SizedBox(height: 1.h),
-            itemBuilder: (_, i) {
-              final item = items[i];
-              return NotificationListTile(
-                item: item,
-                relativeTime: _relativeTime(item.createdAt),
-                onTap: () => _openItem(context, ref, item),
+            data: (items) {
+              if (items.isEmpty) {
+                return Center(
+                  key: const ValueKey('notif-empty'),
+                  child: Text(
+                    'Nenhuma notificação',
+                    style: GoogleFonts.inter(
+                      fontSize: AppTypography.fontSubtitle.sp,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                );
+              }
+              return ListView.separated(
+                key: const ValueKey('notif-list'),
+                padding:
+                    EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+                itemCount: items.length,
+                separatorBuilder: (_, _) => SizedBox(height: 1.h),
+                itemBuilder: (_, i) {
+                  final item = items[i];
+                  return NotificationListTile(
+                    item: item,
+                    relativeTime: _relativeTime(item.createdAt),
+                    onTap: () => _openItem(context, ref, item),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

@@ -2,5 +2,5 @@
 ///
 /// Set [temporarilyUnlocked] to `false` before restoring monetization.
 abstract final class PremiumConfig {
-  static const bool temporarilyUnlocked = true;
+  static const bool temporarilyUnlocked = false;
 }

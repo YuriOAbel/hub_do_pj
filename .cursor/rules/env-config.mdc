@@ -1,0 +1,11 @@
+---
+description: Router for app env keys via flutter_dotenv (.env asset).
+globs: ".env,.env.example,lib/core/config/**/*.dart,lib/services/paywall/revenuecat_config.dart,lib/services/supabase_auth_service.dart,lib/main.dart"
+alwaysApply: false
+---
+
+# Rule: Env Config Router
+
+- For `.env` keys, API keys, Supabase/RC/Legal/Support config, or any app secret read at runtime, read and follow `.cursor/skills/env-config/SKILL.md`.
+- Do not use `--dart-define` / `String.fromEnvironment` for app keys.
+- Source of truth: skill.

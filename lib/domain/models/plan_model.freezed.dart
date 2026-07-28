@@ -22,6 +22,21 @@ mixin _$PlanModel {
   String get priceText => throw _privateConstructorUsedError;
   bool get isSelected => throw _privateConstructorUsedError;
   String? get trialInfoText => throw _privateConstructorUsedError;
+  int get tier => throw _privateConstructorUsedError;
+  String? get badgeText => throw _privateConstructorUsedError;
+  String? get subtitle => throw _privateConstructorUsedError;
+
+  /// Billing period suffix from RC (`/mês`, `/ano`).
+  String? get periodLabel => throw _privateConstructorUsedError;
+
+  /// Store product identifier (RevenueCat `StoreProduct.identifier`).
+  String? get productId => throw _privateConstructorUsedError;
+
+  /// Numeric price from store (`StoreProduct.price`) for analytics.
+  double get price => throw _privateConstructorUsedError;
+
+  /// ISO currency code (`StoreProduct.currencyCode`), default BRL.
+  String get currencyCode => throw _privateConstructorUsedError;
 
   /// Create a copy of PlanModel
   /// with the given fields replaced by the non-null parameter values.
@@ -41,6 +56,13 @@ abstract class $PlanModelCopyWith<$Res> {
     String priceText,
     bool isSelected,
     String? trialInfoText,
+    int tier,
+    String? badgeText,
+    String? subtitle,
+    String? periodLabel,
+    String? productId,
+    double price,
+    String currencyCode,
   });
 }
 
@@ -64,6 +86,13 @@ class _$PlanModelCopyWithImpl<$Res, $Val extends PlanModel>
     Object? priceText = null,
     Object? isSelected = null,
     Object? trialInfoText = freezed,
+    Object? tier = null,
+    Object? badgeText = freezed,
+    Object? subtitle = freezed,
+    Object? periodLabel = freezed,
+    Object? productId = freezed,
+    Object? price = null,
+    Object? currencyCode = null,
   }) {
     return _then(
       _value.copyWith(
@@ -87,6 +116,34 @@ class _$PlanModelCopyWithImpl<$Res, $Val extends PlanModel>
                 ? _value.trialInfoText
                 : trialInfoText // ignore: cast_nullable_to_non_nullable
                       as String?,
+            tier: null == tier
+                ? _value.tier
+                : tier // ignore: cast_nullable_to_non_nullable
+                      as int,
+            badgeText: freezed == badgeText
+                ? _value.badgeText
+                : badgeText // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            subtitle: freezed == subtitle
+                ? _value.subtitle
+                : subtitle // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            periodLabel: freezed == periodLabel
+                ? _value.periodLabel
+                : periodLabel // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            productId: freezed == productId
+                ? _value.productId
+                : productId // ignore: cast_nullable_to_non_nullable
+                      as String?,
+            price: null == price
+                ? _value.price
+                : price // ignore: cast_nullable_to_non_nullable
+                      as double,
+            currencyCode: null == currencyCode
+                ? _value.currencyCode
+                : currencyCode // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -108,6 +165,13 @@ abstract class _$$PlanModelImplCopyWith<$Res>
     String priceText,
     bool isSelected,
     String? trialInfoText,
+    int tier,
+    String? badgeText,
+    String? subtitle,
+    String? periodLabel,
+    String? productId,
+    double price,
+    String currencyCode,
   });
 }
 
@@ -130,6 +194,13 @@ class __$$PlanModelImplCopyWithImpl<$Res>
     Object? priceText = null,
     Object? isSelected = null,
     Object? trialInfoText = freezed,
+    Object? tier = null,
+    Object? badgeText = freezed,
+    Object? subtitle = freezed,
+    Object? periodLabel = freezed,
+    Object? productId = freezed,
+    Object? price = null,
+    Object? currencyCode = null,
   }) {
     return _then(
       _$PlanModelImpl(
@@ -153,6 +224,34 @@ class __$$PlanModelImplCopyWithImpl<$Res>
             ? _value.trialInfoText
             : trialInfoText // ignore: cast_nullable_to_non_nullable
                   as String?,
+        tier: null == tier
+            ? _value.tier
+            : tier // ignore: cast_nullable_to_non_nullable
+                  as int,
+        badgeText: freezed == badgeText
+            ? _value.badgeText
+            : badgeText // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        subtitle: freezed == subtitle
+            ? _value.subtitle
+            : subtitle // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        periodLabel: freezed == periodLabel
+            ? _value.periodLabel
+            : periodLabel // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        productId: freezed == productId
+            ? _value.productId
+            : productId // ignore: cast_nullable_to_non_nullable
+                  as String?,
+        price: null == price
+            ? _value.price
+            : price // ignore: cast_nullable_to_non_nullable
+                  as double,
+        currencyCode: null == currencyCode
+            ? _value.currencyCode
+            : currencyCode // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -167,6 +266,13 @@ class _$PlanModelImpl implements _PlanModel {
     required this.priceText,
     this.isSelected = false,
     this.trialInfoText,
+    this.tier = 1,
+    this.badgeText,
+    this.subtitle,
+    this.periodLabel,
+    this.productId,
+    this.price = 0,
+    this.currencyCode = 'BRL',
   });
 
   @override
@@ -180,10 +286,35 @@ class _$PlanModelImpl implements _PlanModel {
   final bool isSelected;
   @override
   final String? trialInfoText;
+  @override
+  @JsonKey()
+  final int tier;
+  @override
+  final String? badgeText;
+  @override
+  final String? subtitle;
+
+  /// Billing period suffix from RC (`/mês`, `/ano`).
+  @override
+  final String? periodLabel;
+
+  /// Store product identifier (RevenueCat `StoreProduct.identifier`).
+  @override
+  final String? productId;
+
+  /// Numeric price from store (`StoreProduct.price`) for analytics.
+  @override
+  @JsonKey()
+  final double price;
+
+  /// ISO currency code (`StoreProduct.currencyCode`), default BRL.
+  @override
+  @JsonKey()
+  final String currencyCode;
 
   @override
   String toString() {
-    return 'PlanModel(id: $id, title: $title, priceText: $priceText, isSelected: $isSelected, trialInfoText: $trialInfoText)';
+    return 'PlanModel(id: $id, title: $title, priceText: $priceText, isSelected: $isSelected, trialInfoText: $trialInfoText, tier: $tier, badgeText: $badgeText, subtitle: $subtitle, periodLabel: $periodLabel, productId: $productId, price: $price, currencyCode: $currencyCode)';
   }
 
   @override
@@ -198,12 +329,37 @@ class _$PlanModelImpl implements _PlanModel {
             (identical(other.isSelected, isSelected) ||
                 other.isSelected == isSelected) &&
             (identical(other.trialInfoText, trialInfoText) ||
-                other.trialInfoText == trialInfoText));
+                other.trialInfoText == trialInfoText) &&
+            (identical(other.tier, tier) || other.tier == tier) &&
+            (identical(other.badgeText, badgeText) ||
+                other.badgeText == badgeText) &&
+            (identical(other.subtitle, subtitle) ||
+                other.subtitle == subtitle) &&
+            (identical(other.periodLabel, periodLabel) ||
+                other.periodLabel == periodLabel) &&
+            (identical(other.productId, productId) ||
+                other.productId == productId) &&
+            (identical(other.price, price) || other.price == price) &&
+            (identical(other.currencyCode, currencyCode) ||
+                other.currencyCode == currencyCode));
   }
 
   @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, title, priceText, isSelected, trialInfoText);
+  int get hashCode => Object.hash(
+    runtimeType,
+    id,
+    title,
+    priceText,
+    isSelected,
+    trialInfoText,
+    tier,
+    badgeText,
+    subtitle,
+    periodLabel,
+    productId,
+    price,
+    currencyCode,
+  );
 
   /// Create a copy of PlanModel
   /// with the given fields replaced by the non-null parameter values.
@@ -221,6 +377,13 @@ abstract class _PlanModel implements PlanModel {
     required final String priceText,
     final bool isSelected,
     final String? trialInfoText,
+    final int tier,
+    final String? badgeText,
+    final String? subtitle,
+    final String? periodLabel,
+    final String? productId,
+    final double price,
+    final String currencyCode,
   }) = _$PlanModelImpl;
 
   @override
@@ -233,6 +396,28 @@ abstract class _PlanModel implements PlanModel {
   bool get isSelected;
   @override
   String? get trialInfoText;
+  @override
+  int get tier;
+  @override
+  String? get badgeText;
+  @override
+  String? get subtitle;
+
+  /// Billing period suffix from RC (`/mês`, `/ano`).
+  @override
+  String? get periodLabel;
+
+  /// Store product identifier (RevenueCat `StoreProduct.identifier`).
+  @override
+  String? get productId;
+
+  /// Numeric price from store (`StoreProduct.price`) for analytics.
+  @override
+  double get price;
+
+  /// ISO currency code (`StoreProduct.currencyCode`), default BRL.
+  @override
+  String get currencyCode;
 
   /// Create a copy of PlanModel
   /// with the given fields replaced by the non-null parameter values.

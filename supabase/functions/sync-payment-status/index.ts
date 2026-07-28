@@ -67,7 +67,7 @@ serve(async (req) => {
 
     const { data: order } = await supabase
       .from('orders')
-      .select('status, payment_status')
+      .select('status, payment_status, payment_id')
       .eq('id', orderId)
       .single();
 
@@ -92,13 +92,15 @@ serve(async (req) => {
       );
     }
 
-    const { data: payment } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let payment: Record<string, unknown> | null = null;
+    if (order.payment_id) {
+      const { data } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', order.payment_id)
+        .maybeSingle();
+      payment = data;
+    }
 
     if (!payment || payment.status !== 'pending' || !payment.pagarme_charge_id) {
       return new Response(
@@ -111,7 +113,9 @@ serve(async (req) => {
       );
     }
 
-    if (payment.pagarme_charge_id.startsWith('mock_')) {
+    const chargeId = payment.pagarme_charge_id as string;
+
+    if (chargeId.startsWith('mock_')) {
       return new Response(
         JSON.stringify({
           paymentStatus: payment.status,
@@ -133,20 +137,29 @@ serve(async (req) => {
       );
     }
 
-    const chargeStatus = await fetchChargeStatus(payment.pagarme_charge_id, pagarmeSecretKey);
-    let paymentStatus = payment.status;
+    const chargeStatus = await fetchChargeStatus(chargeId, pagarmeSecretKey);
+    let paymentStatus = payment.status as string;
 
     if (chargeStatus === 'paid') {
       const paidAt = new Date().toISOString();
-      await supabase.from('payments').update({ status: 'paid', paid_at: paidAt }).eq('id', payment.id);
+      await supabase
+        .from('payments')
+        .update({ status: 'paid', paid_at: paidAt, is_active: true })
+        .eq('id', payment.id);
       await supabase
         .from('orders')
         .update({ payment_status: 'paid', status: 'processando' })
-        .eq('id', orderId);
+        .eq('payment_id', payment.id);
       paymentStatus = 'paid';
     } else if (chargeStatus === 'failed' || chargeStatus === 'canceled') {
-      await supabase.from('payments').update({ status: 'failed' }).eq('id', payment.id);
-      await supabase.from('orders').update({ payment_status: 'failed' }).eq('id', orderId);
+      await supabase
+        .from('payments')
+        .update({ status: 'failed', is_active: false })
+        .eq('id', payment.id);
+      await supabase
+        .from('orders')
+        .update({ payment_status: 'failed' })
+        .eq('payment_id', payment.id);
       paymentStatus = 'failed';
     }
 

@@ -241,24 +241,27 @@ serve(async (req) => {
       amountCents = DEV_PIX_AMOUNT_CENTS;
     }
 
-    const { data: existingPayment } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    let existingPayment: Record<string, unknown> | null = null;
+    if (order.payment_id) {
+      const { data } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', order.payment_id)
+        .maybeSingle();
+      existingPayment = data;
+    }
 
     if (
       existingPayment?.status === 'pending' &&
-      new Date(existingPayment.expires_at) > new Date() &&
+      existingPayment.expires_at &&
+      new Date(existingPayment.expires_at as string) > new Date() &&
       existingPayment.amount_cents === amountCents
     ) {
       const response: PixResponse = {
-        pixQrCode: existingPayment.pix_qr_code ?? '',
-        pixCopyPaste: existingPayment.pix_copy_paste ?? '',
-        expiresAt: existingPayment.expires_at,
-        amountCents: existingPayment.amount_cents,
+        pixQrCode: (existingPayment.pix_qr_code as string) ?? '',
+        pixCopyPaste: (existingPayment.pix_copy_paste as string) ?? '',
+        expiresAt: existingPayment.expires_at as string,
+        amountCents: existingPayment.amount_cents as number,
         orderId,
       };
 
@@ -268,8 +271,18 @@ serve(async (req) => {
     }
 
     if (existingPayment?.status === 'pending') {
-      await supabase.from('payments').update({ status: 'expired' }).eq('id', existingPayment.id);
+      await supabase
+        .from('payments')
+        .update({ status: 'expired', is_active: false })
+        .eq('id', existingPayment.id);
       await supabase.from('orders').update({ payment_status: 'expired' }).eq('id', orderId);
+    }
+
+    if (!order.user_id) {
+      return new Response(JSON.stringify({ error: 'Pedido sem usuário vinculado' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const productName = order.selected_product_ids?.length
@@ -281,21 +294,32 @@ serve(async (req) => {
     if (!pagarmeSecretKey || pagarmeSecretKey.includes('...')) {
       const mock = createMockPix(orderId, amountCents);
 
-      const { error: paymentError } = await supabase.from('payments').insert({
-        order_id: orderId,
-        pagarme_charge_id: `mock_${orderId}`,
-        pix_qr_code: mock.pixQrCode,
-        pix_copy_paste: mock.pixCopyPaste,
-        amount_cents: amountCents,
-        status: 'pending',
-        expires_at: mock.expiresAt,
-      });
+      const { data: mockPayment, error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          profile_id: order.user_id,
+          provider: 'pagarme_pix',
+          platform: 'web',
+          recurrence: 'one_time',
+          is_active: false,
+          pagarme_charge_id: `mock_${orderId}`,
+          pix_qr_code: mock.pixQrCode,
+          pix_copy_paste: mock.pixCopyPaste,
+          amount_cents: amountCents,
+          status: 'pending',
+          expires_at: mock.expiresAt,
+        })
+        .select('id')
+        .single();
 
       if (paymentError) throw paymentError;
 
       await supabase
         .from('orders')
-        .update({ pagarme_order_id: `mock_order_${orderId}` })
+        .update({
+          pagarme_order_id: `mock_order_${orderId}`,
+          payment_id: mockPayment.id,
+        })
         .eq('id', orderId);
 
       return new Response(JSON.stringify(mock), {
@@ -383,21 +407,32 @@ serve(async (req) => {
     const expiresAt =
       transaction.expires_at || new Date(Date.now() + PIX_EXPIRATION * 1000).toISOString();
 
-    const { error: paymentError } = await supabase.from('payments').insert({
-      order_id: orderId,
-      pagarme_charge_id: charge.id,
-      pix_qr_code: transaction.qr_code,
-      pix_copy_paste: transaction.qr_code,
-      amount_cents: amountCents,
-      status: 'pending',
-      expires_at: expiresAt,
-    });
+    const { data: payment, error: paymentError } = await supabase
+      .from('payments')
+      .insert({
+        profile_id: order.user_id,
+        provider: 'pagarme_pix',
+        platform: 'web',
+        recurrence: 'one_time',
+        is_active: false,
+        pagarme_charge_id: charge.id,
+        pix_qr_code: transaction.qr_code,
+        pix_copy_paste: transaction.qr_code,
+        amount_cents: amountCents,
+        status: 'pending',
+        expires_at: expiresAt,
+      })
+      .select('id')
+      .single();
 
     if (paymentError) throw paymentError;
 
     await supabase
       .from('orders')
-      .update({ pagarme_order_id: orderData.id })
+      .update({
+        pagarme_order_id: orderData.id,
+        payment_id: payment.id,
+      })
       .eq('id', orderId);
 
     const response: PixResponse = {

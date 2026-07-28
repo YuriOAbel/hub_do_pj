@@ -11,7 +11,6 @@ class HomeFeatureCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.showCheck = false,
     this.toggleValue,
     this.onToggleChanged,
     this.actionLabel,
@@ -21,7 +20,6 @@ class HomeFeatureCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final bool showCheck;
   final bool? toggleValue;
   final ValueChanged<bool>? onToggleChanged;
   final String? actionLabel;
@@ -49,96 +47,74 @@ class HomeFeatureCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: 5.5.w, color: AppTheme.primary),
-                  SizedBox(height: 1.h),
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: (AppTypography.fontSubtitle + 1).sp,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
+              Icon(icon, size: 5.5.w, color: AppTheme.primary),
+              SizedBox(height: 1.h),
+              Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: (AppTypography.fontSubtitle + 1).sp,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              SizedBox(height: 0.3.h),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: (AppTypography.fontBody + 2).sp,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              if (toggleValue != null) ...[
+                const Spacer(),
+                Row(
+                  children: [
+                    Text(
+                      toggleValue! ? 'ON' : 'OFF',
+                      style: GoogleFonts.inter(
+                        fontSize: (AppTypography.fontBody + 1).sp,
+                        fontWeight: FontWeight.w600,
+                        color: toggleValue!
+                            ? AppTheme.primary
+                            : AppTheme.textMuted,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 0.3.h),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: (AppTypography.fontBody + 2).sp,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  if (toggleValue != null) ...[
                     const Spacer(),
-                    Row(
-                      children: [
-                        Text(
-                          toggleValue! ? 'ON' : 'OFF',
-                          style: GoogleFonts.inter(
-                            fontSize: (AppTypography.fontBody + 1).sp,
-                            fontWeight: FontWeight.w600,
-                            color: toggleValue!
-                                ? AppTheme.primary
-                                : AppTheme.textMuted,
-                          ),
-                        ),
-                        const Spacer(),
-                        SizedBox(
-                          height: 2.8.h,
-                          child: Switch.adaptive(
-                            value: toggleValue!,
-                            activeTrackColor: AppTheme.primary,
-                            activeThumbColor: AppTheme.surface,
-                            onChanged: onToggleChanged,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  if (actionLabel != null) ...[
-                    const Spacer(),
-                    Align(
-                      alignment: Alignment.bottomRight,
-                      child: Text(
-                        '${actionLabel!} >',
-                        style: GoogleFonts.inter(
-                          fontSize: (AppTypography.fontBody + 1).sp,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppTheme.primary,
-                        ),
+                    SizedBox(
+                      height: 2.8.h,
+                      child: Switch.adaptive(
+                        value: toggleValue!,
+                        activeTrackColor: AppTheme.primary,
+                        activeThumbColor: AppTheme.surface,
+                        onChanged: onToggleChanged,
                       ),
                     ),
                   ],
-                ],
-              ),
-              if (showCheck)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: Container(
-                    width: 5.w,
-                    height: 5.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                ),
+              ],
+              if (actionLabel != null) ...[
+                const Spacer(),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Text(
+                    '${actionLabel!} >',
+                    style: GoogleFonts.inter(
+                      fontSize: (AppTypography.fontBody + 1).sp,
+                      fontWeight: FontWeight.w600,
                       color: AppTheme.primary,
-                    ),
-                    child: Icon(
-                      Icons.check,
-                      size: 3.w,
-                      color: AppTheme.surface,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppTheme.primary,
                     ),
                   ),
                 ),
+              ],
             ],
           ),
         ),

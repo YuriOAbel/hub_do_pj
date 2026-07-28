@@ -14,6 +14,7 @@ import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_cont
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_header_card.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_onboarding_tutorial_coach.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_partner_tab.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_svg_icon.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/services/pdf_export_service.dart';
@@ -106,12 +107,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   }
 
   Future<void> _sharePdf() async {
-    if (!isPremiumActive(ref)) {
-      if (!mounted) return;
-      await PremiumUpsellSheet.show(context, PaywallOrigin.share);
-      return;
-    }
-
     try {
       await FirebaseAnalyticsHelper.instance.logCompartilhou();
       final box =
@@ -185,7 +180,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ],
         ],
       ),
-      body: Column(
+      body: AppScreenFade(
+        child: Column(
         children: [
           ResultHeaderCard(key: _headerKey, cnpj: widget.cnpj),
           SizedBox(
@@ -237,6 +233,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
+import 'package:consulta_cnpj_new/domain/models/company_score_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_feature_card.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_score_card.dart';
@@ -12,7 +13,9 @@ import 'package:consulta_cnpj_new/theme/app_theme.dart';
 class HomeStatusSection extends ConsumerStatefulWidget {
   const HomeStatusSection({
     super.key,
-    required this.onScoreStart,
+    required this.onScoreEmptyTap,
+    required this.onScoreSingleTap,
+    required this.onScoreMultiTap,
     required this.onMonitorTap,
     required this.onCndTap,
     required this.onRestricaoTap,
@@ -24,7 +27,9 @@ class HomeStatusSection extends ConsumerStatefulWidget {
     this.protestoKey,
   });
 
-  final VoidCallback onScoreStart;
+  final VoidCallback onScoreEmptyTap;
+  final void Function(CompanyScoreResult result) onScoreSingleTap;
+  final VoidCallback onScoreMultiTap;
   final VoidCallback onMonitorTap;
   final VoidCallback onCndTap;
   final VoidCallback onRestricaoTap;
@@ -72,7 +77,9 @@ class _HomeStatusSectionState extends ConsumerState<HomeStatusSection> {
         SizedBox(height: 1.2.h),
         HomeScoreCard(
           key: widget.scoreKey,
-          onStart: widget.onScoreStart,
+          onEmptyTap: widget.onScoreEmptyTap,
+          onSingleTap: widget.onScoreSingleTap,
+          onMultiTap: widget.onScoreMultiTap,
         ),
         SizedBox(height: 1.2.h),
         GridView.count(
@@ -97,9 +104,10 @@ class _HomeStatusSectionState extends ConsumerState<HomeStatusSection> {
             HomeFeatureCard(
               key: widget.cndsKey,
               icon: Icons.description_outlined,
-              title: 'Emitir CNDs',
-              subtitle: 'Emita até 10 certidões para a sua empresa',
-              actionLabel: 'Emitir',
+              title: 'Gestão de CNDs',
+              subtitle:
+                  'Realize a gestão de até 10 certidões para a sua empresa',
+              actionLabel: 'Gerenciar',
               onTap: widget.onCndTap,
             ),
             HomeFeatureCard(
@@ -107,7 +115,6 @@ class _HomeStatusSectionState extends ConsumerState<HomeStatusSection> {
               icon: Icons.lock_outline,
               title: 'Consulta de Restrição',
               subtitle: 'Verifique se a empresa possui irregularidades',
-              showCheck: true,
               actionLabel: 'Consultar',
               onTap: widget.onRestricaoTap,
             ),
@@ -116,7 +123,6 @@ class _HomeStatusSectionState extends ConsumerState<HomeStatusSection> {
               icon: Icons.gavel,
               title: 'Consulta de Protesto',
               subtitle: 'Confira apontamentos por PJ',
-              showCheck: true,
               actionLabel: 'Consultar',
               onTap: widget.onProtestoTap,
             ),

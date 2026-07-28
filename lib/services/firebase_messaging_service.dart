@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:consulta_cnpj_new/domain/models/app_notification_model.dart';
@@ -8,7 +7,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 @pragma('vm:entry-point')
@@ -23,52 +21,37 @@ class FirebaseMessagingService {
   static final FirebaseMessagingService instance = FirebaseMessagingService._();
   FirebaseMessagingService._();
 
-  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    'cnpj_consulta_default',
-    'Notificações',
-    description: 'Alertas e avisos do CNPJ Consulta',
-    importance: Importance.high,
-  );
-
-  final FlutterLocalNotificationsPlugin _localNotifications =
-      FlutterLocalNotificationsPlugin();
-
-  /// Called when user opens a push (system tray or local banner).
+  /// Called when user opens a push from the system tray.
   void Function(AppNotificationModel item)? onOpenNotification;
 
   /// Called after inbox was mutated (foreground save).
   VoidCallback? onInboxUpdated;
 
   String? _fcmToken;
+  bool _permissionRequested = false;
+  bool _listenersBound = false;
 
   String? get fcmToken => _fcmToken;
 
+  /// Wires FCM listeners. Does **not** show the OS permission dialog —
+  /// call [requestPermission] at the product moment.
   Future<void> init() async {
     try {
       final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission(alert: true, badge: true, sound: true);
-
-      if (Platform.isAndroid) {
-        await Permission.notification.request();
-      }
-
-      await _initLocalNotifications();
 
       await messaging.subscribeToTopic('geral');
 
-      _fcmToken = await messaging.getToken();
-      if (kDebugMode) {
-        debugPrint('FirebaseMessagingService FCM token: $_fcmToken');
+      if (!_listenersBound) {
+        _listenersBound = true;
+        messaging.onTokenRefresh.listen((token) {
+          _fcmToken = token;
+          if (kDebugMode) {
+            debugPrint('FirebaseMessagingService FCM token refresh: $token');
+          }
+        });
+        FirebaseMessaging.onMessage.listen(_onForegroundMessage);
+        FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedMessage);
       }
-      messaging.onTokenRefresh.listen((token) {
-        _fcmToken = token;
-        if (kDebugMode) {
-          debugPrint('FirebaseMessagingService FCM token refresh: $token');
-        }
-      });
-
-      FirebaseMessaging.onMessage.listen(_onForegroundMessage);
-      FirebaseMessaging.onMessageOpenedApp.listen(_handleOpenedMessage);
 
       final initial = await messaging.getInitialMessage();
       if (initial != null) {
@@ -79,26 +62,24 @@ class FirebaseMessagingService {
     }
   }
 
-  Future<void> _initLocalNotifications() async {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInit = DarwinInitializationSettings();
-    await _localNotifications.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
-      onDidReceiveNotificationResponse: (response) {
-        final payload = response.payload;
-        if (payload == null || payload.isEmpty) return;
-        final item = _itemFromPayload(payload);
-        if (item == null) return;
-        onOpenNotification?.call(item);
-      },
-    );
+  /// Shows the system notification permission prompt (once per install).
+  Future<void> requestPermission() async {
+    if (_permissionRequested) return;
+    _permissionRequested = true;
+    try {
+      final messaging = FirebaseMessaging.instance;
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
 
-    if (Platform.isAndroid) {
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(_channel);
+      if (Platform.isAndroid) {
+        await Permission.notification.request();
+      }
+
+      _fcmToken = await messaging.getToken();
+      if (kDebugMode) {
+        debugPrint('FirebaseMessagingService FCM token: $_fcmToken');
+      }
+    } catch (e) {
+      debugPrint('FirebaseMessagingService.requestPermission: $e');
     }
   }
 
@@ -106,32 +87,6 @@ class FirebaseMessagingService {
     final item = inboxItemFromMessage(message);
     await LocalNotificationInboxService.instance.save(item);
     onInboxUpdated?.call();
-
-    final notification = message.notification;
-    if (notification == null && item.title.isEmpty && item.body.isEmpty) {
-      return;
-    }
-
-    final title = notification?.title ?? item.title;
-    final body = notification?.body ?? item.body;
-
-    await _localNotifications.show(
-      item.id.hashCode,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: const DarwinNotificationDetails(),
-      ),
-      payload: _payloadFromItem(item),
-    );
   }
 
   Future<void> _handleOpenedMessage(RemoteMessage message) async {
@@ -177,33 +132,6 @@ class FirebaseMessagingService {
       read: false,
       createdAt: message.sentTime ?? DateTime.now(),
     );
-  }
-
-  static String _payloadFromItem(AppNotificationModel item) {
-    return jsonEncode(item.toJson());
-  }
-
-  static AppNotificationModel? _itemFromPayload(String payload) {
-    try {
-      final map = jsonDecode(payload);
-      if (map is! Map) return null;
-      return AppNotificationModel.fromJson(
-        Map<String, dynamic>.from(map),
-      );
-    } catch (_) {
-      // Legacy payloads were plain route strings.
-      if (payload.startsWith('/') && !payload.startsWith('http')) {
-        return AppNotificationModel(
-          id: 'legacy_${payload.hashCode}',
-          title: 'Notificação',
-          body: '',
-          type: 'content',
-          route: payload,
-          createdAt: DateTime.now(),
-        );
-      }
-      return null;
-    }
   }
 
   Future<void> subscribeRestriction() async {

@@ -7,7 +7,7 @@ class FirebaseConfigService {
   static final FirebaseConfigService instance = FirebaseConfigService._();
   FirebaseConfigService._();
 
-  Map<String, dynamic> _defaults = {};
+  final Map<String, dynamic> _defaults = {};
   bool _initialized = false;
 
   Future<void> init() async {

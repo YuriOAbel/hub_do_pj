@@ -1,10 +1,17 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase/supabase.dart';
 import 'package:consulta_cnpj_new/core/utils/device_identifier.dart';
+import 'package:consulta_cnpj_new/services/free_user_limits_service.dart';
+import 'package:consulta_cnpj_new/services/home_tutorial_service.dart';
+import 'package:consulta_cnpj_new/services/local_cnpj_storage_service.dart';
+import 'package:consulta_cnpj_new/services/local_notification_inbox_service.dart';
+import 'package:consulta_cnpj_new/services/onboarding_service.dart';
+import 'package:consulta_cnpj_new/services/revenuecat_service.dart';
 
 /// Anonymous Supabase auth with session restore (prefs + Keychain).
 ///
@@ -33,15 +40,12 @@ class SupabaseAuthService {
   Future<bool>? _refreshInFlight;
 
   String get _supabaseUrl {
-    const fromDefine = String.fromEnvironment('SUPABASE_URL');
-    if (fromDefine.isNotEmpty) return fromDefine;
+    final fromEnv = dotenv.env['SUPABASE_URL']?.trim() ?? '';
+    if (fromEnv.isNotEmpty) return fromEnv;
     return _defaultUrl;
   }
 
-  String get _anonKey {
-    const fromDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
-    return fromDefine;
-  }
+  String get _anonKey => dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
 
   /// User JWT when authenticated; empty when not.
   String get currentJwt => _jwt ?? '';
@@ -134,6 +138,10 @@ class SupabaseAuthService {
   void _afterSessionReady() {
     Future(() async {
       await syncDeviceId();
+      final uid = _userId;
+      if (uid != null && uid.isNotEmpty) {
+        await RevenueCatService.instance.logIn(uid);
+      }
     });
   }
 
@@ -278,5 +286,59 @@ class SupabaseAuthService {
     _jwt = null;
     _userId = null;
     _client = null;
+  }
+
+  /// Deletes remote account via Edge Function, wipes local user data, signs in
+  /// anonymously again.
+  Future<void> deleteAccount() async {
+    await initialize();
+    if (!isAuthenticated || _client == null || currentJwt.isEmpty) {
+      throw StateError(
+        'Sessão inválida. Reabra o app e tente novamente.',
+      );
+    }
+
+    await refreshSession();
+    if (!isAuthenticated || currentJwt.isEmpty || _client == null) {
+      throw StateError(
+        'Sessão inválida. Reabra o app e tente novamente.',
+      );
+    }
+
+    try {
+      final response = await _client!.functions.invoke(
+        'delete-account',
+        body: <String, dynamic>{},
+        headers: {
+          'Authorization': 'Bearer $currentJwt',
+        },
+      );
+
+      final data = response.data;
+      final ok = data is Map && data['ok'] == true;
+      if (!ok) {
+        final message = data is Map && data['error'] is String
+            ? data['error'] as String
+            : 'Não foi possível excluir a conta';
+        throw StateError(message);
+      }
+    } catch (e) {
+      debugPrint('SupabaseAuthService.deleteAccount: $e');
+      if (e is StateError) rethrow;
+      throw StateError('Não foi possível excluir a conta. Tente novamente.');
+    }
+
+    await _wipeLocalUserData();
+    await clearIdentity();
+    await initialize();
+  }
+
+  Future<void> _wipeLocalUserData() async {
+    await OnboardingService.instance.clearAll();
+    await LocalHistoryService.instance.clearAll();
+    await LocalFavoritesService.instance.clearAll();
+    await LocalNotificationInboxService.instance.clearAll();
+    await HomeTutorialService.instance.clear();
+    await PlanLimitsService.instance.clearUsageAndCache();
   }
 }

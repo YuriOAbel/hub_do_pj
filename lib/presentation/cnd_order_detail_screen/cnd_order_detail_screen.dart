@@ -5,14 +5,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:sizer/sizer.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:consulta_cnpj_new/core/config/support_config.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_catalog_model.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
+import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnd_orders_provider.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_order_detail_screen/widgets/cnd_certificate_list.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_orders_screen/widgets/cnd_order_type_badge.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_orders_screen/widgets/cnd_status_badge.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/open_paywall.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class CndOrderDetailScreen extends ConsumerWidget {
@@ -66,15 +70,27 @@ class CndOrderDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _openWhatsApp(WidgetRef ref, CndOrderModel order) async {
-    final catalog = await ref.read(cndCatalogProvider.future);
-    final uri = Uri.https(
-      'wa.me',
-      '/${catalog.whatsappNumber}',
-      {'text': 'Olá! Preciso de suporte sobre o pedido #${order.shortId}'},
+    final url = SupportConfig.whatsappUrlWithText(
+      'Olá! Preciso de suporte sobre o pedido #${order.shortId}',
     );
+    if (url.isEmpty) return;
+    final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  bool _hasPendingPayment(CndOrderModel order) =>
+      order.status == 'em_analise' && order.paymentStatus != 'paid';
+
+  Future<void> _finishPayment(BuildContext context) {
+    return openPaywall(
+      context,
+      PaywallRouteArgs(
+        origin: PaywallOrigin.cnd,
+        pendingOrderId: order.id,
+      ),
+    );
   }
 
   @override
@@ -90,6 +106,7 @@ class CndOrderDetailScreen extends ConsumerWidget {
     final typeLabel = product?.shortLabel ?? 'Pedido';
     final certificates =
         isCertificatePackage ? (catalog?.certificates ?? []) : <CndCertificateItem>[];
+    final paymentPending = _hasPendingPayment(order);
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -103,7 +120,8 @@ class CndOrderDetailScreen extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
+        child: AppScreenFade(
+          child: Column(
           children: [
             Expanded(
               child: ListView(
@@ -157,17 +175,43 @@ class CndOrderDetailScreen extends ConsumerWidget {
                       color: AppTheme.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(
-                      _statusMessage(
-                        order: order,
-                        isCertificatePackage: isCertificatePackage,
-                      ),
-                      style: GoogleFonts.inter(
-                        fontSize: AppTypography.fontSubtitle.sp,
-                        color: AppTheme.textPrimary,
-                        height: 1.4,
-                      ),
-                    ),
+                    child: paymentPending
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Pagamento pendente',
+                                style: GoogleFonts.inter(
+                                  fontSize: AppTypography.fontSubtitle.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.textPrimary,
+                                  height: 1.4,
+                                ),
+                              ),
+                              SizedBox(height: 1.5.h),
+                              CnpjPrimaryButton(
+                                onPressed: () => _finishPayment(context),
+                                child: Text(
+                                  'Finalizar agora',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            _statusMessage(
+                              order: order,
+                              isCertificatePackage: isCertificatePackage,
+                            ),
+                            style: GoogleFonts.inter(
+                              fontSize: AppTypography.fontSubtitle.sp,
+                              color: AppTheme.textPrimary,
+                              height: 1.4,
+                            ),
+                          ),
                   ),
                   SizedBox(height: 2.h),
                   Container(
@@ -244,6 +288,7 @@ class CndOrderDetailScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

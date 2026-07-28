@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/services/share_app_service.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -13,7 +14,8 @@ class ReferFriendScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(title: const Text('Indicar amigo')),
-      body: Padding(
+      body: AppScreenFade(
+        child: Padding(
         padding: EdgeInsets.all(6.w),
         child: Column(
           children: [
@@ -58,6 +60,7 @@ class ReferFriendScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -45,6 +45,15 @@ abstract class _LocalCnpjListService {
     final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
     await prefs.setString(storageKey, encoded);
   }
+
+  Future<void> clearAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(storageKey);
+    } catch (e) {
+      debugPrint('LocalCnpjListService.clearAll: $e');
+    }
+  }
 }
 
 class LocalHistoryService extends _LocalCnpjListService {

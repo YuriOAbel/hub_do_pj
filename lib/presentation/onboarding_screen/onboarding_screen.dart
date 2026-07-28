@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:consulta_cnpj_new/domain/models/onboarding_model.dart';
-import 'package:consulta_cnpj_new/domain/models/result_route_args.dart';
-import 'package:consulta_cnpj_new/domain/providers/cnpj_search_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
+import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_cnpj_confirm_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_cnpj_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_company_infos_step.dart';
-import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_consulta_pending_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_disclaimer_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_interests_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_name_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_occupation_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_paywall_placeholder.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_rating_step.dart';
-import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -101,31 +99,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _onCnpjSearch() async {
     final text = _cnpjController.text.trim();
-    if (text.isEmpty) return;
+    final digits = text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length != 14) return;
 
     FocusScope.of(context).unfocus();
-    CnpjLoadingOverlay.show(context);
-    try {
-      final result =
-          await ref.read(cnpjSearchProvider.notifier).searchByCnpj(text);
-      if (!mounted) return;
-      CnpjLoadingOverlay.hide();
-      await Navigator.pushNamed(
-        context,
-        AppRoutes.result,
-        arguments: ResultRouteArgs(cnpj: result, fromOnboarding: true),
-      );
-      if (!mounted) return;
-      _flow.goTo(OnboardingStep.rating);
-    } catch (_) {
-      if (!mounted) return;
-      CnpjLoadingOverlay.hide();
-      await OnboardingConsultaPendingSheet.show(context);
-      if (!mounted) return;
-      await _flow.finishOnboarding();
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-    }
+    final confirmed = await OnboardingCnpjConfirmSheet.show(context);
+    if (!mounted || !confirmed) return;
+
+    await _flow.savePendingCnpj(text);
+    await _flow.requestNotificationPermission();
+    if (!mounted) return;
+    _flow.goTo(OnboardingStep.rating);
   }
 
   void _onRatingUpdate(double value) {
@@ -178,7 +162,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: switch (draft.step) {
+        child: AppScreenFade(
+          child: AppAsyncFadeSwitcher(
+            child: KeyedSubtree(
+              key: ValueKey(draft.step),
+              child: switch (draft.step) {
           OnboardingStep.disclaimer => OnboardingDisclaimerStep(
               onContinue: _onDisclaimerContinue,
             ),
@@ -222,7 +210,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           OnboardingStep.paywall => OnboardingPaywallPlaceholder(
               onSkip: _onPaywallSkip,
             ),
-        },
+              },
+            ),
+          ),
+        ),
       ),
     );
   }

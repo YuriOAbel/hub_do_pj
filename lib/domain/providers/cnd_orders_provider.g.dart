@@ -22,7 +22,7 @@ final cndCatalogProvider =
     );
 
 typedef _$CndCatalog = AutoDisposeAsyncNotifier<CndCatalogModel>;
-String _$cndOrdersHash() => r'e7d81d6dd4eedd5c040cd1d58c6216cff7f1aca4';
+String _$cndOrdersHash() => r'e97f49abf89d82d73d498ec095947eb5ca5ba6df';
 
 /// See also [CndOrders].
 @ProviderFor(CndOrders)

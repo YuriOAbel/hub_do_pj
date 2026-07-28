@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase/supabase.dart';
+import 'package:consulta_cnpj_new/core/config/support_config.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_address_model.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_catalog_model.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
+import 'package:consulta_cnpj_new/services/payments_service.dart';
 import 'package:consulta_cnpj_new/services/supabase_auth_service.dart';
 
 class CndOrdersException implements Exception {
@@ -15,6 +17,20 @@ class CndOrdersException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class ActiveOrderExistsException extends CndOrdersException {
+  ActiveOrderExistsException(this.order)
+      : super('Já existe um pedido vigente para este CNPJ');
+  final CndOrderModel order;
+}
+
+class PlanLimitReachedException extends CndOrdersException {
+  PlanLimitReachedException({
+    String message = 'Limite do plano atingido para este produto',
+    this.suggestedTier = 2,
+  }) : super(message);
+  final int suggestedTier;
 }
 
 class CndOrdersService {
@@ -111,11 +127,36 @@ class CndOrdersService {
         throw CndOrdersException('Erro ao criar pedido');
       }
 
-      return CndOrderModel.fromJson(Map<String, dynamic>.from(data));
+      final map = Map<String, dynamic>.from(data);
+      if (map['code'] == 'ACTIVE_ORDER_EXISTS' && map['order'] is Map) {
+        throw ActiveOrderExistsException(
+          CndOrderModel.fromJson(
+            Map<String, dynamic>.from(map['order'] as Map),
+          ),
+        );
+      }
+      if (map['code'] == 'PLAN_LIMIT_REACHED') {
+        throw PlanLimitReachedException(
+          message: map['error'] as String? ??
+              'Limite do plano atingido para este produto',
+          suggestedTier: (map['suggestedTier'] as num?)?.toInt() ?? 2,
+        );
+      }
+
+      return CndOrderModel.fromJson(map);
     } on CndOrdersException {
       rethrow;
     } catch (e) {
       debugPrint('CndOrdersService.createOrder: $e');
+      final active = _extractActiveOrder(e);
+      if (active != null) throw ActiveOrderExistsException(active);
+      if (_isPlanLimit(e)) {
+        throw PlanLimitReachedException(
+          message: _extractFunctionError(e) ??
+              'Limite do plano atingido para este produto',
+          suggestedTier: _extractSuggestedTier(e),
+        );
+      }
       throw CndOrdersException(
         _extractFunctionError(e) ?? 'Erro ao criar pedido',
       );
@@ -169,6 +210,59 @@ class CndOrdersService {
     }
   }
 
+  Future<CndOrderModel> markOrderPaid(String orderId) async {
+    final auth = SupabaseAuthService.instance;
+    await _ensureAuthReady(auth);
+
+    final client = auth.client;
+    if (client == null || auth.userId == null) {
+      throw CndOrdersException(
+        'Sessão inválida. Reabra o app e tente novamente.',
+      );
+    }
+
+    try {
+      final paymentId =
+          await PaymentsService.instance.ensureRevenueCatPaymentId();
+      if (paymentId == null || paymentId.isEmpty) {
+        throw CndOrdersException(
+          'Pagamento não vinculado. Tente novamente em instantes.',
+        );
+      }
+
+      final response = await client.functions.invoke(
+        'mark-order-paid',
+        body: {
+          'orderId': orderId,
+          'paymentId': paymentId,
+        },
+        headers: {
+          'Authorization': 'Bearer ${auth.currentJwt}',
+        },
+      );
+
+      final data = response.data;
+      if (data is! Map) {
+        throw CndOrdersException('Erro ao confirmar pagamento do pedido');
+      }
+
+      return CndOrderModel.fromJson(Map<String, dynamic>.from(data));
+    } on CndOrdersException {
+      rethrow;
+    } catch (e) {
+      debugPrint('CndOrdersService.markOrderPaid: $e');
+      final limitMsg = _extractPlanLimitError(e);
+      if (limitMsg != null) {
+        throw CndOrdersException(limitMsg);
+      }
+      throw CndOrdersException(
+        _extractFunctionError(e) ??
+            _extractCatchError(e) ??
+            'Erro ao confirmar pagamento do pedido',
+      );
+    }
+  }
+
   Future<CndOrderModel> getOrder({required String id}) async {
     final auth = SupabaseAuthService.instance;
     await _ensureAuthReady(auth);
@@ -213,7 +307,11 @@ class CndOrdersService {
   }
 
   String whatsappUrl({String? text}) {
-    final number = _catalog?.whatsappNumber ?? '5548996498239';
+    final fromEnv = SupportConfig.phoneDigits;
+    final number = fromEnv.isNotEmpty
+        ? fromEnv
+        : (_catalog?.whatsappNumber ?? '');
+    if (number.isEmpty) return '';
     final uri = Uri.https('wa.me', '/$number', {
       if (text != null && text.isNotEmpty) 'text': text,
     });
@@ -261,6 +359,49 @@ class CndOrdersService {
       }
     }
     return _extractCatchError(e);
+  }
+
+  String? _extractPlanLimitError(Object e) {
+    if (e is FunctionException) {
+      final details = e.details;
+      if (details is Map && details['code'] == 'PLAN_LIMIT_REACHED') {
+        return details['error'] as String? ??
+            'Limite do plano atingido para este produto';
+      }
+    }
+    return null;
+  }
+
+  bool _isPlanLimit(Object e) {
+    if (e is FunctionException) {
+      final details = e.details;
+      return details is Map && details['code'] == 'PLAN_LIMIT_REACHED';
+    }
+    return false;
+  }
+
+  int _extractSuggestedTier(Object e) {
+    if (e is FunctionException) {
+      final details = e.details;
+      if (details is Map && details['suggestedTier'] is num) {
+        return (details['suggestedTier'] as num).toInt();
+      }
+    }
+    return 2;
+  }
+
+  CndOrderModel? _extractActiveOrder(Object e) {
+    if (e is FunctionException) {
+      final details = e.details;
+      if (details is Map &&
+          details['code'] == 'ACTIVE_ORDER_EXISTS' &&
+          details['order'] is Map) {
+        return CndOrderModel.fromJson(
+          Map<String, dynamic>.from(details['order'] as Map),
+        );
+      }
+    }
+    return null;
   }
 
   String? _extractCatchError(Object e) {

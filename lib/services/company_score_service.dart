@@ -15,7 +15,7 @@ class CompanyScoreService {
   static final CompanyScoreService instance = CompanyScoreService._();
   CompanyScoreService._();
 
-  Future<CompanyScoreResult?> fetchLatestThisMonth() async {
+  Future<List<CompanyScoreResult>> fetchThisMonth() async {
     final auth = SupabaseAuthService.instance;
     await _ensureAuthReady(auth);
 
@@ -28,27 +28,34 @@ class CompanyScoreService {
     }
 
     try {
-      final row = await client
+      final rows = await client
           .from('company_scores')
           .select()
           .eq('profile_id', userId)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .order('created_at', ascending: false);
 
-      if (row == null) return null;
-
-      final result = CompanyScoreResult.fromJson(
-        Map<String, dynamic>.from(row),
-      );
-      if (!_isSameSaoPauloMonth(result.createdAt)) return null;
-      return result;
+      final list = <CompanyScoreResult>[];
+      for (final row in rows as List) {
+        final result = CompanyScoreResult.fromJson(
+          Map<String, dynamic>.from(row as Map),
+        );
+        if (_isSameSaoPauloMonth(result.createdAt)) {
+          list.add(result);
+        }
+      }
+      return list;
     } catch (e) {
-      debugPrint('CompanyScoreService.fetchLatestThisMonth: $e');
+      debugPrint('CompanyScoreService.fetchThisMonth: $e');
       throw CompanyScoreException(
         _extractCatchError(e) ?? 'Erro ao carregar score',
       );
     }
+  }
+
+  Future<CompanyScoreResult?> fetchLatestThisMonth() async {
+    final list = await fetchThisMonth();
+    if (list.isEmpty) return null;
+    return list.first;
   }
 
   Future<CompanyScoreResult> calculate({
@@ -90,7 +97,15 @@ class CompanyScoreService {
         throw CompanyScoreException('Erro ao calcular score');
       }
 
-      return CompanyScoreResult.fromJson(Map<String, dynamic>.from(data));
+      final map = Map<String, dynamic>.from(data);
+      if (map['code'] == 'PLAN_LIMIT_REACHED') {
+        throw CompanyScoreException(
+          map['error'] as String? ??
+              'Limite do plano atingido para score de empresas',
+        );
+      }
+
+      return CompanyScoreResult.fromJson(map);
     } on CompanyScoreException {
       rethrow;
     } catch (e) {
@@ -120,8 +135,14 @@ class CompanyScoreService {
   String? _extractFunctionError(Object e) {
     if (e is FunctionException) {
       final details = e.details;
-      if (details is Map && details['error'] is String) {
-        return details['error'] as String;
+      if (details is Map) {
+        if (details['code'] == 'PLAN_LIMIT_REACHED') {
+          return details['error'] as String? ??
+              'Limite do plano atingido para score de empresas';
+        }
+        if (details['error'] is String) {
+          return details['error'] as String;
+        }
       }
       if (details is String && details.trim().isNotEmpty) {
         return details;

@@ -5,6 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -39,7 +40,8 @@ class _EvaluationScreenState extends ConsumerState<EvaluationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Avaliar app')),
-      body: Padding(
+      body: AppScreenFade(
+        child: Padding(
         padding: EdgeInsets.all(6.w),
         child: Column(
           children: [
@@ -56,7 +58,7 @@ class _EvaluationScreenState extends ConsumerState<EvaluationScreen> {
             RatingBar.builder(
               initialRating: 0,
               minRating: 1,
-              itemBuilder: (_, __) =>
+              itemBuilder: (_, _) =>
                   Icon(Icons.star, color: AppTheme.warning),
               onRatingUpdate: (r) => setState(() => _rating = r),
             ),
@@ -77,6 +79,7 @@ class _EvaluationScreenState extends ConsumerState<EvaluationScreen> {
                   style: GoogleFonts.inter(color: Colors.white)),
             ),
           ],
+        ),
         ),
       ),
     );

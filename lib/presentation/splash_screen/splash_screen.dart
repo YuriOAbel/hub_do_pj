@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:consulta_cnpj_new/core/config/premium_access.dart';
+import 'package:consulta_cnpj_new/domain/models/home_entry_args.dart';
 import 'package:consulta_cnpj_new/domain/providers/app_init_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
+import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -14,6 +18,8 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  String? _error;
+
   @override
   void initState() {
     super.initState();
@@ -21,16 +27,38 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _bootstrap() async {
-    await ref.read(appInitProvider.future);
-    if (!mounted) return;
+    setState(() => _error = null);
+    try {
+      await ref.read(appInitProvider.future);
+      if (!mounted) return;
 
-    final completed = await ref.read(onboardingCompletedProvider.future);
-    if (!mounted) return;
+      final completed = await ref.read(onboardingCompletedProvider.future);
+      if (!mounted) return;
 
-    Navigator.pushReplacementNamed(
-      context,
-      completed ? AppRoutes.home : AppRoutes.onboarding,
-    );
+      if (!completed) {
+        Navigator.pushReplacementNamed(context, AppRoutes.onboarding);
+        return;
+      }
+
+      // Returning users: prompt once if never asked (no-op if already decided).
+      await ref
+          .read(onboardingFlowProvider.notifier)
+          .requestNotificationPermission();
+      if (!mounted) return;
+
+      await ref.read(premiumStatusProvider.future);
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        AppRoutes.home,
+        arguments: HomeEntryArgs(openPaywall: !isPremiumActive(ref)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Ops, tivemos um problema...\ntente novamente';
+      });
+    }
   }
 
   @override
@@ -49,7 +77,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 BlendMode.srcIn,
               ),
             ),
-            Text(
+            const Text(
               'Consulta Empresas',
               style: TextStyle(
                 color: Colors.white,
@@ -58,28 +86,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               ),
             ),
             const SizedBox(height: 30),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  children: [
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: _bootstrap,
+                      child: const Text(
+                        'Tentar novamente',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Text(
-                  'Carregando...',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+              )
+            else
+              LoadingAnimationWidget.staggeredDotsWave(
+                color: Colors.white,
+                size: 40,
+              ),
           ],
         ),
       ),

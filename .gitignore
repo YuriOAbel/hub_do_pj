@@ -52,3 +52,4 @@ supabase/.temp/
 .env.json
 .env.*
 !.env.example
+docs/KEYS_ACCESS.md

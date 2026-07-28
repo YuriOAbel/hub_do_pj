@@ -12,7 +12,7 @@ Registry e helper já alinhados (19 eventos). Este guia confirma eventos no Cons
 ### Android
 
 ```bash
-adb shell setprop debug.firebase.analytics.app br.com.cgy.consulta_cnpj_empresas
+adb shell setprop debug.firebase.analytics.app com.hubdopj.consultaempresas
 flutter run
 ```
 
@@ -30,7 +30,7 @@ Ou build debug e abrir o app no device físico.
 
 ## Console
 
-1. [Firebase Console](https://console.firebase.google.com/project/consulta-cnpj-1196c/analytics/debugview) → Analytics → DebugView
+1. [Firebase Console](https://console.firebase.google.com/project/hub-do-pj---consulta-empresas/analytics/debugview) → Analytics → DebugView
 2. Disparar fluxos no app (busca CNPJ, favorito, paywall, etc.)
 3. Confirmar os 19 event keys em `assets/config/analytics_events.json`
 

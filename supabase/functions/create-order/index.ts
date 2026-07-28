@@ -1,5 +1,12 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import {
+  PRODUCT_LIMIT_COLUMN,
+  PRODUCT_SUGGESTED_TIER,
+  countDistinctActiveCnpjsInPeriod,
+  findActiveOrderForCnpj,
+  onlyDigits,
+} from '../_shared/plan_limits.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,10 +41,6 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function onlyDigits(value: string): string {
-  return value.replace(/\D/g, '');
-}
-
 function formatCnpj(raw: string): string {
   const digits = onlyDigits(raw);
   if (digits.length !== 14) return raw.trim();
@@ -70,6 +73,7 @@ function toApiOrder(row: Record<string, unknown>) {
     address: row.address ?? null,
     status: row.status,
     paymentStatus: row.payment_status,
+    paymentId: row.payment_id ?? null,
     createdAt: isoTimestamp(row.created_at),
     updatedAt: row.updated_at ? isoTimestamp(row.updated_at) : null,
   };
@@ -113,7 +117,6 @@ serve(async (req) => {
       return jsonResponse({ error: 'Autenticação obrigatória' }, 401);
     }
 
-    // Service role + explicit JWT — Edge has no local auth session.
     const admin = createClient(supabaseUrl, supabaseServiceKey);
     const {
       data: { user },
@@ -166,7 +169,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await admin
       .from('profiles')
-      .select('id, device_id')
+      .select('id, device_id, plan_product_id')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -201,6 +204,87 @@ serve(async (req) => {
 
     if (!product || product.active !== true) {
       return jsonResponse({ error: 'Produto inválido ou inativo' }, 400);
+    }
+
+    const existing = await findActiveOrderForCnpj(
+      admin,
+      user.id,
+      product.id,
+      cnpjDigits,
+    );
+    if (existing) {
+      return jsonResponse(
+        {
+          error: 'Já existe um pedido vigente para este CNPJ',
+          code: 'ACTIVE_ORDER_EXISTS',
+          order: toApiOrder(existing),
+        },
+        409,
+      );
+    }
+
+    const planProductId =
+      typeof profile.plan_product_id === 'string' &&
+        profile.plan_product_id.trim()
+        ? profile.plan_product_id.trim()
+        : 'free';
+
+    const limitColumn = PRODUCT_LIMIT_COLUMN[product.id];
+    // Free users create then open paywall — skip quota here.
+    // Paid plans (incl. limit 0) enforce before insert.
+    if (limitColumn && planProductId !== 'free') {
+      const { data: limits, error: limitsError } = await admin
+        .from('plan_limits')
+        .select('*')
+        .eq('plan_product_id', planProductId)
+        .maybeSingle();
+
+      if (limitsError) {
+        console.error('create-order limits:', limitsError);
+        return jsonResponse({ error: 'Erro ao carregar limites do plano' }, 500);
+      }
+
+      if (!limits) {
+        console.error(
+          'create-order missing plan_limits for',
+          planProductId,
+        );
+        return jsonResponse(
+          {
+            error: 'Limites do plano não configurados',
+            code: 'PLAN_LIMITS_MISSING',
+            planProductId,
+          },
+          500,
+        );
+      }
+
+      const limit = Number(
+        (limits as Record<string, unknown>)[limitColumn] ?? 0,
+      );
+      const periodMonths = Number(limits.quota_period_months ?? 1);
+      const { used, cnpjs } = await countDistinctActiveCnpjsInPeriod(
+        admin,
+        user.id,
+        product.id,
+        periodMonths,
+      );
+
+      const wouldConsume = !cnpjs.has(cnpjDigits);
+      if (limit <= 0 || (wouldConsume && used >= limit)) {
+        return jsonResponse(
+          {
+            error: 'Limite do plano atingido para este produto',
+            code: 'PLAN_LIMIT_REACHED',
+            planProductId,
+            productId: product.id,
+            limit,
+            used,
+            suggestedTier: PRODUCT_SUGGESTED_TIER[product.id] ?? 2,
+          },
+          403,
+        );
+      }
     }
 
     const insertPayload = {

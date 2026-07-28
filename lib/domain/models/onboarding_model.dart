@@ -1,7 +1,4 @@
-enum OnboardingPersonType {
-  pf,
-  pj,
-}
+enum OnboardingPersonType { pf, pj }
 
 enum OnboardingPfProfession {
   contador,
@@ -135,7 +132,7 @@ extension OnboardingInterestX on OnboardingInterest {
   String get label {
     switch (this) {
       case OnboardingInterest.consultarCnpj:
-        return 'Consultar CNPJ';
+        return 'Consultar PJ';
       case OnboardingInterest.emitirCnds:
         return 'Emitir CNDs';
       case OnboardingInterest.consultarRestricao:
@@ -248,10 +245,12 @@ class OnboardingDraft {
     return OnboardingDraft(
       personType: personType ?? this.personType,
       name: name ?? this.name,
-      pfProfession:
-          clearPfProfession ? null : (pfProfession ?? this.pfProfession),
-      pjOccupation:
-          clearPjOccupation ? null : (pjOccupation ?? this.pjOccupation),
+      pfProfession: clearPfProfession
+          ? null
+          : (pfProfession ?? this.pfProfession),
+      pjOccupation: clearPjOccupation
+          ? null
+          : (pjOccupation ?? this.pjOccupation),
       occupationOther: occupationOther ?? this.occupationOther,
       interests: interests ?? this.interests,
       companyInfos: companyInfos ?? this.companyInfos,

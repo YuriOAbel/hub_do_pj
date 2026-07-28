@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Writes ios/Runner/GoogleService-Info.plist + lib/firebase_options.dart
-# for project consulta-cnpj-1196c without requiring the Ruby xcodeproj gem.
+# for project hub-do-pj---consulta-empresas without requiring the Ruby xcodeproj gem.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -8,9 +8,9 @@ cd "$ROOT"
 
 export PATH="${PATH}:${HOME}/.pub-cache/bin:/opt/homebrew/bin"
 
-PROJECT_ID="consulta-cnpj-1196c"
-ANDROID_APP_ID="1:894074953486:android:c5f731d097e0c0e777c15f"
-IOS_BUNDLE_ID="br.com.cgy.consultaCnpjEmpresas"
+PROJECT_ID="hub-do-pj---consulta-empresas"
+ANDROID_APP_ID="1:187808051701:android:b5cde34b695ffb6b4b30bc"
+IOS_BUNDLE_ID="com.hubdopj.consultaempresas"
 
 if ! command -v firebase >/dev/null 2>&1; then
   echo "firebase CLI missing. Install: brew install firebase-cli"

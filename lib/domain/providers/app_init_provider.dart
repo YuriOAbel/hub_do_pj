@@ -16,5 +16,10 @@ class AppInit extends _$AppInit {
     await FirebaseMessagingService.instance.init();
     await ref.read(remoteConfigProvider.notifier).refresh();
     await SupabaseAuthService.instance.initialize();
+    // Ensure RC identity is bound before premium sync (splash awaits this).
+    final uid = SupabaseAuthService.instance.userId;
+    if (uid != null && uid.isNotEmpty) {
+      await RevenueCatService.instance.logIn(uid);
+    }
   }
 }

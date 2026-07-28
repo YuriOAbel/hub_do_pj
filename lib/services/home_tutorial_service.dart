@@ -25,4 +25,13 @@ class HomeTutorialService {
       debugPrint('HomeTutorialService.markTutorialSeen: $e');
     }
   }
+
+  Future<void> clear() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_seenKey);
+    } catch (e) {
+      debugPrint('HomeTutorialService.clear: $e');
+    }
+  }
 }

@@ -8,7 +8,7 @@ class ShareAppService {
   ShareAppService._();
 
   static const _playStoreUrl =
-      'https://play.google.com/store/apps/details?id=br.com.cgy.consulta_cnpj_empresas';
+      'https://play.google.com/store/apps/details?id=com.hubdopj.consultaempresas';
   static const _appStoreUrl = 'https://apps.apple.com/app/id0000000000';
 
   /// Fallback origin required by iOS/iPadOS share sheet.

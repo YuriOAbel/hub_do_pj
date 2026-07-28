@@ -28,16 +28,40 @@ class RevenueCatService {
   Future<void> init() async {
     if (RevenueCatConfig.useMock || _isInitialized) return;
     try {
+      final key = RevenueCatConfig.apiKey;
+      final keyPrefix = key.length >= 5 ? key.substring(0, 5) : key;
+      debugPrint(
+        'RevenueCatService.init: useTestStore=${RevenueCatConfig.useTestStore} '
+        'keyPrefix=$keyPrefix '
+        'offeringId=${RevenueCatConfig.offeringId}',
+      );
       await Purchases.configure(
         PurchasesConfiguration(RevenueCatConfig.apiKey),
       );
-      if (RevenueCatConfig.isDebug) {
+      if (RevenueCatConfig.isDebug || kDebugMode) {
         await Purchases.setLogLevel(LogLevel.debug);
       }
       Purchases.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
       _isInitialized = true;
     } catch (e) {
       debugPrint('RevenueCatService.init: $e');
+    }
+  }
+
+  /// Bind store purchases to stable Supabase user id (not RC anonymous).
+  Future<CustomerInfo?> logIn(String appUserId) async {
+    if (RevenueCatConfig.useMock || !_isInitialized) return null;
+    final id = appUserId.trim();
+    if (id.isEmpty) return null;
+    try {
+      final result = await Purchases.logIn(id);
+      final info = result.customerInfo;
+      _customerInfoController.add(info);
+      await _notifyPremiumStatusUpdated(info);
+      return info;
+    } catch (e) {
+      debugPrint('RevenueCatService.logIn: $e');
+      return null;
     }
   }
 
@@ -52,9 +76,14 @@ class RevenueCatService {
   }
 
   bool isPremiumActive(CustomerInfo info) {
-    final entitlement =
+    final named =
         info.entitlements.all[RevenueCatConfig.premiumEntitlementId];
-    return entitlement?.isActive ?? false;
+    if (named?.isActive ?? false) return true;
+    // Fallback: any active entitlement (Test Store / misnamed entitlement).
+    for (final e in info.entitlements.active.values) {
+      if (e.isActive) return true;
+    }
+    return info.activeSubscriptions.isNotEmpty;
   }
 
   Future<CustomerInfo?> getCustomerInfo() async {
@@ -77,13 +106,15 @@ class RevenueCatService {
     }
   }
 
-  Future<CustomerInfo?> purchasePackage(Package package) async {
+  Future<PurchaseResult?> purchasePackage(Package package) async {
     try {
-      final info = await Purchases.purchasePackage(package);
-      if (isPremiumActive(info)) {
-        await _notifyPremiumStatusUpdated(info);
-      }
-      return info;
+      final purchaseResult = await Purchases.purchase(
+        PurchaseParams.package(package),
+      );
+      final info = purchaseResult.customerInfo;
+      // Always sync — entitlement may lag behind a successful store purchase.
+      await _notifyPremiumStatusUpdated(info);
+      return purchaseResult;
     } on PlatformException catch (e) {
       final code = PurchasesErrorHelper.getErrorCode(e);
       if (code == PurchasesErrorCode.purchaseCancelledError) {

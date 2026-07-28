@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
+import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/models/search_param.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnpj_search_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/remote_config_provider.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_search_field.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
+import 'package:consulta_cnpj_new/services/cnpj_search_exception.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class SearchAdvancedScreen extends ConsumerStatefulWidget {
@@ -61,6 +65,22 @@ class _SearchAdvancedScreenState extends ConsumerState<SearchAdvancedScreen> {
           Navigator.pushNamed(context, AppRoutes.result, arguments: result);
         }
       }
+    } on PlanLimitException catch (e) {
+      if (!mounted) return;
+      await PremiumUpsellSheet.show(
+        context,
+        PaywallOrigin.searchLimit,
+        suggestedTier: e.suggestedTier,
+        limitMessage: e.message,
+        suggestedPlanTitle: e.suggestedPlanTitle,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Ops, tivemos um problema... tente novamente'),
+        ),
+      );
     } finally {
       CnpjLoadingOverlay.hide();
     }
@@ -72,7 +92,8 @@ class _SearchAdvancedScreenState extends ConsumerState<SearchAdvancedScreen> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Busca avançada')),
-      body: enabled
+      body: AppScreenFade(
+        child: enabled
           ? Padding(
               padding: EdgeInsets.all(5.w),
               child: Column(
@@ -112,6 +133,7 @@ class _SearchAdvancedScreenState extends ConsumerState<SearchAdvancedScreen> {
                 style: GoogleFonts.inter(color: AppTheme.textSecondary),
               ),
             ),
+      ),
     );
   }
 }

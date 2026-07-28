@@ -66,4 +66,13 @@ class LocalNotificationInboxService {
     final encoded = jsonEncode(list.map((e) => e.toJson()).toList());
     await prefs.setString(storageKey, encoded);
   }
+
+  Future<void> clearAll() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(storageKey);
+    } catch (e) {
+      debugPrint('LocalNotificationInboxService.clearAll: $e');
+    }
+  }
 }

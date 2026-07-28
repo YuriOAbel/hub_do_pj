@@ -2,7 +2,7 @@
 
 Estado do projeto após prep de código (jul/2026). Textos de listing: `docs/STORE_LISTING.md`. Setup iOS detalhado: `docs/IOS_SETUP.md`.
 
-**Bundle ID atual:** `br.com.cgy.consultaCnpjEmpresas`  
+**Bundle ID atual:** `com.hubdopj.consultaempresas`  
 **Team:** `JAQM5S9JWA`  
 **Versão:** `4.0.0+50` (`pubspec.yaml`)
 
@@ -11,7 +11,7 @@ Estado do projeto após prep de código (jul/2026). Textos de listing: `docs/STO
 ## Já feito no código
 
 - [x] Bundle ID fora de `com.example.*`
-- [x] Display name `Consulta CNPJ`
+- [x] Display name `Hub do PJ: Consulta empresas` (iOS + Android)
 - [x] Portrait only (iPhone + iPad)
 - [x] ATS exception HTTP para `api.consultarempresas.com.br`
 - [x] Usage descriptions (contatos)
@@ -29,7 +29,7 @@ Estado do projeto após prep de código (jul/2026). Textos de listing: `docs/STO
 
 ### 1. Firebase iOS
 
-- [ ] `GoogleService-Info.plist` em `ios/Runner/` (adicionar via Xcode; Bundle ID `br.com.cgy.consultaCnpjEmpresas`)
+- [ ] `GoogleService-Info.plist` em `ios/Runner/` (adicionar via Xcode; Bundle ID `com.hubdopj.consultaempresas`)
 - [x] `lib/firebase_options.dart` + `Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)`
 - [ ] Upload chave APNs no Firebase → Cloud Messaging
 
@@ -40,7 +40,7 @@ DebugView: `docs/FIREBASE_DEBUGVIEW.md`.
 
 ### 2. Apple Developer + App Store Connect
 
-- [ ] App ID `br.com.cgy.consultaCnpjEmpresas` com Push + In-App Purchase
+- [ ] App ID `com.hubdopj.consultaempresas` com Push + In-App Purchase
 - [ ] Criar app no App Store Connect (mesmo Bundle ID)
 - [ ] Xcode → Signing & Capabilities: Team, Push Notifications, In-App Purchase
 - [ ] Confirmar Bundle ID se já existir outro ID registrado (avise para alinhar o projeto)
@@ -49,13 +49,14 @@ DebugView: `docs/FIREBASE_DEBUGVIEW.md`.
 
 - [ ] Produto auto-renovável no ASC (ex. mensal ~R$ 4,99)
 - [ ] Agreements, Tax, and Banking preenchidos
-- [ ] RevenueCat: app iOS + entitlement `premium` + offering `default`
-- [ ] Build com `--dart-define=RC_API_KEY=...` (chave **Apple** do RC)
+- [ ] RevenueCat: app iOS + entitlement `premium` + offering `hub_pj_cp_prod_mensal`
+- [ ] Build com keys no `.env` (`RC_IOS_API_KEY`) — sem `--dart-define`
 
 ### 4. Privacidade
 
-- [ ] Publicar URL de política de privacidade
-- [ ] Colar em `lib/core/config/legal_urls.dart` → `privacyPolicy`
+- [x] Publicar URL de política de privacidade — https://www.hubdopj.com/consulta-empresas/politica-de-privacidade.html
+- [x] Termos de uso — https://www.hubdopj.com/consulta-empresas/termos-de-uso.html
+- [x] Preencher `LEGAL_PRIVACY_URL` / `LEGAL_TERMS_URL` (`.env` → `LegalUrls`)
 - [ ] Mesma URL no App Store Connect + Privacy Nutrition Labels (contatos, analytics)
 
 ### 5. Listing
@@ -68,7 +69,8 @@ DebugView: `docs/FIREBASE_DEBUGVIEW.md`.
 
 ```bash
 cd ios && pod install && cd ..
-flutter build ipa --dart-define=RC_API_KEY=sua_chave_apple
+flutter build ipa
+# keys from root `.env` (flutter_dotenv)
 # ou Archive pelo Xcode → Distribute App → App Store Connect
 ```
 

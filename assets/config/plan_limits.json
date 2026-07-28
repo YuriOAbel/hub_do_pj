@@ -1,0 +1,72 @@
+{
+  "free": {
+    "dailyCnpjSearchLimit": 10,
+    "monthlyRestricaoCnpjLimit": 0,
+    "monthlyProtestoCnpjLimit": 0,
+    "monthlyCndPackageCnpjLimit": 0,
+    "quotaPeriodMonths": 1
+  },
+  "hub_pj_test_mensal_app": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 0,
+    "monthlyProtestoCnpjLimit": 0,
+    "monthlyCndPackageCnpjLimit": 0,
+    "quotaPeriodMonths": 1
+  },
+  "hub_pj_test_mensal_cp_lg": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 2,
+    "monthlyProtestoCnpjLimit": 2,
+    "monthlyCndPackageCnpjLimit": 2,
+    "quotaPeriodMonths": 3
+  },
+  "hub_pj_test_mensal_cp_pl": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 10,
+    "monthlyProtestoCnpjLimit": 10,
+    "monthlyCndPackageCnpjLimit": 10,
+    "quotaPeriodMonths": 1
+  },
+  "hub_pj_mensal_app": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 0,
+    "monthlyProtestoCnpjLimit": 0,
+    "monthlyCndPackageCnpjLimit": 0,
+    "quotaPeriodMonths": 1
+  },
+  "hub_pj_mensal_cp_lg": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 2,
+    "monthlyProtestoCnpjLimit": 2,
+    "monthlyCndPackageCnpjLimit": 2,
+    "quotaPeriodMonths": 3
+  },
+  "hub_pj_mensal_cp_pl": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 10,
+    "monthlyProtestoCnpjLimit": 10,
+    "monthlyCndPackageCnpjLimit": 10,
+    "quotaPeriodMonths": 1
+  },
+  "app_access": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 0,
+    "monthlyProtestoCnpjLimit": 0,
+    "monthlyCndPackageCnpjLimit": 0,
+    "quotaPeriodMonths": 1
+  },
+  "compliance_light": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 2,
+    "monthlyProtestoCnpjLimit": 2,
+    "monthlyCndPackageCnpjLimit": 2,
+    "quotaPeriodMonths": 3
+  },
+  "compliance_plus": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 10,
+    "monthlyProtestoCnpjLimit": 10,
+    "monthlyCndPackageCnpjLimit": 10,
+    "quotaPeriodMonths": 1
+  }
+}

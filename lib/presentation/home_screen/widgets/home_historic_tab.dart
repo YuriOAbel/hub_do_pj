@@ -4,6 +4,9 @@ import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/core/utils/keyboard_utils.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/historic_provider.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_error.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_loading.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_empty_state.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_list_tile.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
@@ -15,26 +18,34 @@ class HomeHistoricTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final historic = ref.watch(historicListProvider);
 
-    return historic.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, __) => const CnpjEmptyState(message: 'Erro ao carregar histórico'),
-      data: (items) {
-        if (items.isEmpty) {
-          return const CnpjEmptyState(
-            message: 'Seu histórico de consultas aparecerá aqui.',
-          );
-        }
-        return ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (_, i) {
-            final item = items[i];
-            return CnpjListTile(
-              item: item,
-              onTap: () => _open(context, item),
+    return AppAsyncFadeSwitcher(
+      child: historic.when(
+        loading: () => const AppAsyncLoading(key: ValueKey('hist-loading')),
+        error: (_, _) => AppAsyncError(
+          key: const ValueKey('hist-error'),
+          onRetry: () =>
+              ref.read(historicListProvider.notifier).refreshList(),
+        ),
+        data: (items) {
+          if (items.isEmpty) {
+            return const CnpjEmptyState(
+              key: ValueKey('hist-empty'),
+              message: 'Seu histórico de consultas aparecerá aqui.',
             );
-          },
-        );
-      },
+          }
+          return ListView.builder(
+            key: const ValueKey('hist-list'),
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final item = items[i];
+              return CnpjListTile(
+                item: item,
+                onTap: () => _open(context, item),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 

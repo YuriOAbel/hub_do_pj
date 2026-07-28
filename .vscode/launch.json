@@ -5,30 +5,21 @@
       "name": "hub_do_pj",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=.env.json"
-      ]
+      "program": "lib/main.dart"
     },
     {
       "name": "hub_do_pj (profile)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "profile",
-      "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=.env.json"
-      ]
+      "program": "lib/main.dart"
     },
     {
       "name": "hub_do_pj (release)",
       "request": "launch",
       "type": "dart",
       "flutterMode": "release",
-      "program": "lib/main.dart",
-      "toolArgs": [
-        "--dart-define-from-file=.env.json"
-      ]
+      "program": "lib/main.dart"
     }
   ]
 }

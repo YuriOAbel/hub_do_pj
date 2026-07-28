@@ -39,6 +39,28 @@ class ProfileSyncService {
     }
   }
 
+  Future<void> updateName(String name) async {
+    final auth = SupabaseAuthService.instance;
+    final client = auth.client;
+    final userId = auth.userId;
+
+    if (!auth.isAuthenticated || client == null || userId == null) {
+      debugPrint('ProfileSyncService: not authenticated — skip updateName');
+      return;
+    }
+
+    try {
+      await client
+          .from('profiles')
+          .update({'name': name.trim()})
+          .eq('id', userId);
+      debugPrint('ProfileSyncService: name updated');
+    } catch (e) {
+      debugPrint('ProfileSyncService.updateName: $e');
+      rethrow;
+    }
+  }
+
   /// Merges [interestIds] into `profiles.interest_ids` (no duplicates).
   Future<void> appendInterestIds(List<String> interestIds) async {
     if (interestIds.isEmpty) return;

@@ -80,18 +80,7 @@ class ResultContactTab extends ConsumerWidget {
           iconAsset: 'assets/icons/printer.svg',
           title: 'Compartilhar PDF',
           subtitle: 'Exportar dados da empresa',
-          onTap: (cardContext) => _premiumAction(
-            cardContext,
-            ref,
-            PaywallOrigin.share,
-            (shareOrigin) async {
-              await FirebaseAnalyticsHelper.instance.logCompartilhou();
-              await PdfExportService.instance.shareCnpjPdf(
-                cnpj,
-                sharePositionOrigin: shareOrigin,
-              );
-            },
-          ),
+          onTap: (cardContext) => _sharePdf(cardContext),
         ),
         ResultContactActionCard(
           iconAsset: 'assets/icons/download.svg',
@@ -127,6 +116,26 @@ class ResultContactTab extends ConsumerWidget {
     );
   }
 
+  Future<void> _sharePdf(BuildContext context) async {
+    final box = context.findRenderObject() as RenderBox?;
+    final shareOrigin = box != null && box.hasSize
+        ? box.localToGlobal(Offset.zero) & box.size
+        : null;
+
+    try {
+      await FirebaseAnalyticsHelper.instance.logCompartilhou();
+      await PdfExportService.instance.shareCnpjPdf(
+        cnpj,
+        sharePositionOrigin: shareOrigin,
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível compartilhar o PDF.')),
+      );
+    }
+  }
+
   Future<void> _premiumAction(
     BuildContext context,
     WidgetRef ref,
@@ -135,6 +144,7 @@ class ResultContactTab extends ConsumerWidget {
   ) async {
     if (!isPremiumActive(ref)) {
       await FirebaseAnalyticsHelper.instance.logClicouDesbloqueioPremium();
+      if (!context.mounted) return;
       await PremiumUpsellSheet.show(context, origin);
       return;
     }

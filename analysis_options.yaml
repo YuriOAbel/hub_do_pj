@@ -1,1 +1,6 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Freezed / json_serializable put @JsonKey on factory params.
+    invalid_annotation_target: ignore

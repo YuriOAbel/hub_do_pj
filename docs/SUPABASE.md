@@ -22,16 +22,18 @@ O app autentica no splash via `SupabaseAuthService` (`signInAnonymously`, sem Tu
 
 Pedidos CND/protesto/restrição são criados neste projeto via Edge Function `create-order` (JWT obrigatório). O pedido só é aceito se `profiles.device_id` estiver preenchido para o user autenticado. Listagem no app: PostgREST `orders` filtrado por `user_id = auth.uid()` (qualquer `product_id`).
 
-### Dart-defines
+Pagamentos: tabela `payments` vinculada a `profiles` (`profile_id`). Um payment pode cobrir vários orders (`orders.payment_id`). Providers: `revenuecat` (app Flutter via `PaymentsService`) e `pagarme_pix` (Edge PIX). Campos RC: `rc_id`, `recurrence` (monthly/annual), `is_active`, `platform` (ios/android).
+
+Limites de plano: ver **[`docs/PLAN_LIMITS.md`](PLAN_LIMITS.md)** (CNPJs distintos em `orders` vigentes, janela 3 meses Light / 1 mês Plus). Tabela `plan_limits` + `quota_period_months`. Enforcement em `create-order`, `mark-order-paid`, `calculate-company-score`.
+
+### Env (`.env`)
 
 ```bash
-flutter run \
-  --dart-define=SUPABASE_URL=https://kpkctuuzhbnqudemeudh.supabase.co \
-  --dart-define=SUPABASE_ANON_KEY=your_anon_key \
-  --dart-define=RC_API_KEY=your_key
+# Root `.env` (flutter_dotenv) — no --dart-define needed
+flutter run
 ```
 
-`SUPABASE_URL` tem default no código; `SUPABASE_ANON_KEY` é obrigatório (sem ela, auth é skip).
+`SUPABASE_URL` / `SUPABASE_ANON_KEY` / RC keys vêm do `.env`. Sem `SUPABASE_ANON_KEY`, auth é skip.
 
 ### Dashboard (pré-requisito)
 
@@ -39,6 +41,7 @@ flutter run \
 2. Captcha **off** para anon até Turnstile (fase futura)  
 3. Aplicar migration `20260715140000_profiles_onboarding_interests.sql` com review  
 4. Aplicar migration `20260715200000_company_scores.sql` com review (score empresarial)
+5. Aplicar migration `20260716130000_payments_profile_subscription.sql` (payments ↔ profiles + orders.payment_id)
 
 Naming: tabelas/colunas/functions sempre inglês (`snake_case`) — ver skill Supabase.
 
@@ -47,11 +50,12 @@ Naming: tabelas/colunas/functions sempre inglês (`snake_case`) — ver skill Su
 | Function | Uso | JWT |
 |---|---|---|
 | `create-order` | Cria `orders` vinculados ao user autenticado (exige `profiles.device_id`) | on (default) |
-| `create-pix-order` | Cria/reusa cobrança PIX (Pagar.me) para um pedido | on (default) |
-| `pagarme-webhook` | Eventos Pagar.me (`charge.paid` / fail / refund) → `payments` + `orders` | **off** (`verify_jwt = false` no config; HMAC via `x-hub-signature`) |
+| `create-pix-order` | Cria/reusa cobrança PIX (Pagar.me); grava `payments` + `orders.payment_id` | on (default) |
+| `pagarme-webhook` | Eventos Pagar.me → `payments` + todos `orders` com aquele `payment_id` | **off** (`verify_jwt = false` no config; HMAC via `x-hub-signature`) |
 | `sync-payment-status` | Poll status da charge (fallback se webhook atrasar); Bearer service-role | on |
 | `send-marketing-emails` | Envio em massa Resend a partir do Storage bucket `marketing` | on |
-| `calculate-company-score` | Calcula e persiste score empresarial (1×/mês por profile) | on |
+| `calculate-company-score` | Calcula e persiste score empresarial (cota via `plan_limits`) | on |
+| `mark-order-paid` | Confirma pedido premium + `payment_id`; rejeita se cota do plano esgotada | on |
 
 ```bash
 supabase functions deploy create-order
@@ -60,6 +64,7 @@ supabase functions deploy pagarme-webhook
 supabase functions deploy sync-payment-status
 supabase functions deploy send-marketing-emails
 supabase functions deploy calculate-company-score
+supabase functions deploy mark-order-paid
 ```
 
 Webhook URL (Pagar.me):

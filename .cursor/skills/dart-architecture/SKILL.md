@@ -73,6 +73,14 @@ question it and propose migrating it to the source of truth.
 
 ---
 
+## Env / secrets
+
+App keys use **flutter_dotenv** (root `.env` asset). See `.cursor/skills/env-config/SKILL.md`.
+
+Do **not** use `String.fromEnvironment` / `--dart-define` for app keys.
+
+---
+
 ## Code reuse (DRY)
 
 - **Do not copy-paste** identical or near-identical widget subtrees, style maps, or logic branches. If two branches differ only by a wrapper (e.g. `GestureDetector` vs none) or a flag, **extract once** and vary the minimum needed.

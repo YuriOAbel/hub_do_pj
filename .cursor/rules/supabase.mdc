@@ -8,6 +8,8 @@ alwaysApply: false
 
 - If touching `supabase/functions/**`, read and follow
   `.cursor/skills/supabase/SKILL.md`.
+- After creating or changing any Edge Function, **deploy it** before
+  finishing (see skill: Edge Functions — deploy after every change).
 - Tables, columns, functions, and Edge names: English `snake_case` only.
 - Dependencies: `.cursor/rules/database-requests.mdc` and
   `.cursor/rules/supabase-migrations.mdc`.

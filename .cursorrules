@@ -13,7 +13,7 @@ Core Functionality:
 - Company detail: address, CNAEs, partners (QSA), contacts, situation.
 - History and favorites: local persistence (SharedPreferences).
 - Premium subscription: RevenueCat entitlement `premium` — unlimited search, favorites, PDF share, maps, contact actions.
-- Extras: advanced search (Remote Config gated), prospecting calculator, refer-a-friend, app evaluation, financial cards, restriction notification topic.
+- Extras: advanced search (Remote Config gated), prospecting calculator, refer-a-friend, app evaluation, restriction notification topic.
 
 Data Strategy: **Current phase:** direct HTTP services (ReceitaWS + ASW API) with singleton services abstracting I/O. Local state via SharedPreferences. Firebase for Analytics, Remote Config, and FCM. RevenueCat for subscriptions. **Supabase:** this repo is the deploy anchor for Certidões PJ (project `certidoes` / `kpkctuuzhbnqudemeudh`) — Edge Functions + migrations live under `supabase/`. Flutter creates CND/protesto/restrição orders via `create-order` (JWT + `profiles.device_id`) and lists via PostgREST under RLS. Ads (Wortise/AdMob) in a later phase.
 
@@ -42,6 +42,9 @@ Rules are lightweight routers; detailed implementation guidance lives in `.curso
 | Data fetching / avoiding duplicate DB or PostgREST calls | `database-requests.mdc` | `database-requests/SKILL.md` |
 | Firebase Analytics events (registry, new `eventKey`, helper methods) | `analytics-events.mdc` | `analytics-events/SKILL.md` |
 | Writing or running Maestro E2E tests (when explicitly requested) | `maestro-testing.mdc` | `maestro-testing/SKILL.md` |
+| Revisar app para App Store / Google Play / publicação | `store-compliance.mdc` | `store-compliance/SKILL.md` |
+| `.env` keys, API keys, Supabase/RC/Legal/Support config | `env-config.mdc` | `env-config/SKILL.md` |
+| Gate pré-produção (keys, branding, builds, Supabase migrations/Edge sync) | — | agent `.cursor/agents/dev-ops-release.md` (`/dev-ops-release`) |
 | Subscriptions / payments (RevenueCat) | — | `payments-core/SKILL.md` |
 
 These rules define the non-negotiable architecture and patterns of this project. **The architecture must never be broken.** If a request would require violating a rule, say so explicitly and propose a compliant alternative.
@@ -69,17 +72,23 @@ flutter pub get
 # Code generation (required after changing Freezed models or adding JSON serialization)
 dart run build_runner build --delete-conflicting-outputs
 
-# Run the app
+# Run the app (keys from root `.env` via flutter_dotenv)
 flutter run
 
-# Run with RevenueCat (production / sandbox)
-flutter run --dart-define=RC_API_KEY=your_key
+# iOS release (unsigned; sign in Xcode / Archive)
+flutter build ios --release --no-codesign
+
+# Android release AAB
+flutter build appbundle --release
 
 # Lint / static analysis
 flutter analyze
 
 # Analytics registry (run after changing analytics_events.json or FirebaseAnalyticsHelper)
 flutter test test/analytics_events_registry_test.dart
+
+# Release readiness (requires RC_USE_PROD=true in .env) — or invoke /dev-ops-release
+flutter test test/release_readiness_test.dart
 
 # Supabase (Certidões PJ — see docs/SUPABASE.md)
 supabase link --project-ref kpkctuuzhbnqudemeudh
@@ -113,7 +122,7 @@ lib/
 │   ├── refer_friend_screen/
 │   ├── evaluation_screen/
 │   ├── not_available_screen/
-│   ├── financial_cards_screen/
+│   ├── settings_screen/
 │   └── shared/widgets/      # CnpjPrimaryButton, PremiumUpsellSheet, etc.
 ├── services/                # Singleton I/O (HTTP, Firebase, RevenueCat, local storage)
 ├── routes/                  # AppRoutes — named routes with typed args
@@ -141,7 +150,7 @@ supabase/                    # Certidões PJ backend (source of truth)
 
 Named routes only via `AppRoutes`. Pass arguments as typed objects (`CnpjModel`, `PaywallOrigin`, `SearchParam`, etc.). Never navigate with raw strings or anonymous routes.
 
-Key routes: `/`, `/home`, `/result`, `/paywall`, `/search-advanced`, `/calculator`, `/refer-friend`, `/evaluation`, `/not-available`, `/financial-cards`.
+Key routes: `/`, `/home`, `/result`, `/paywall`, `/search-advanced`, `/calculator`, `/refer-friend`, `/evaluation`, `/not-available`, `/settings`.
 
 ---
 
@@ -150,7 +159,7 @@ Key routes: `/`, `/home`, `/result`, `/paywall`, `/search-advanced`, `/calculato
 | Service | Base URL | Usage |
 |---|---|---|
 | ReceitaWS | `https://www.receitaws.com.br/v1/` | GET `cnpj/{digits}` |
-| ASW | `http://api.consultarempresas.com.br:8888/` | Name search, financial cards |
+| ASW | `http://api.consultarempresas.com.br:8888/` | Name search |
 
 iOS requires ATS exception for ASW HTTP endpoint (see `docs/IOS_SETUP.md`).
 

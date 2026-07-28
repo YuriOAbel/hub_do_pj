@@ -23,9 +23,11 @@ Apply fade when:
 - Revealing list / card / section after fetch
 
 Preferred patterns:
-- Screen mount: `TweenAnimationBuilder<double>` opacity `0 → 1` (~400–450ms, `Curves.easeOut`) wrapping the main content
-- Async state switch: `AnimatedSwitcher` + `FadeTransition` (same duration/curve family)
-- Scoped component (e.g. score card): fade only that subtree is OK; whole-screen fade is OK when the whole page mounts
+- Screen mount: `AppScreenFade` (or `TweenAnimationBuilder` opacity `0 → 1`, ~400–450ms, `Curves.easeOut`) wrapping the main content
+- Async state switch: `AppAsyncFadeSwitcher` (or `AnimatedSwitcher` + `FadeTransition`)
+- Loading: `AppAsyncLoading` (`LoadingAnimationWidget.staggeredDotsWave` + `AppTheme.primary`)
+- Error + retry: `AppAsyncError`
+- Local min delay: `withLocalMinDelay(...)` from `lib/core/utils/local_min_delay.dart`
 
 Do **not** skip fade because the load was fast.
 

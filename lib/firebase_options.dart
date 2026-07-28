@@ -1,4 +1,4 @@
-// File generated for Firebase project consulta-cnpj-1196c.
+// File generated for Firebase project hub-do-pj---consulta-empresas.
 // Android: google-services.json | iOS: GoogleService-Info.plist
 // Refresh: ./scripts/configure_firebase.sh
 // ignore_for_file: type=lint
@@ -27,19 +27,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBBfqtCtitG5vjRVjlZyZXXKAOiD-sReko',
-    appId: '1:894074953486:android:c5f731d097e0c0e777c15f',
-    messagingSenderId: '894074953486',
-    projectId: 'consulta-cnpj-1196c',
-    storageBucket: 'consulta-cnpj-1196c.appspot.com',
+    apiKey: 'AIzaSyDke-XEh0s2oSx-4DSMv9mwl7Tll6tG6JM',
+    appId: '1:187808051701:android:b5cde34b695ffb6b4b30bc',
+    messagingSenderId: '187808051701',
+    projectId: 'hub-do-pj---consulta-empresas',
+    storageBucket: 'hub-do-pj---consulta-empresas.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBsKJgq3rFE4r-1mCIn5WBoOdg73fv537A',
-    appId: '1:894074953486:ios:1e568cda28db338677c15f',
-    messagingSenderId: '894074953486',
-    projectId: 'consulta-cnpj-1196c',
-    storageBucket: 'consulta-cnpj-1196c.firebasestorage.app',
-    iosBundleId: 'br.com.cgy.consultaCnpjEmpresas',
+    apiKey: 'AIzaSyAjqvvb27SlAziM5YqSTMvdsdRtdgUSkSM',
+    appId: '1:187808051701:ios:4b6b0f30866ffaaf4b30bc',
+    messagingSenderId: '187808051701',
+    projectId: 'hub-do-pj---consulta-empresas',
+    storageBucket: 'hub-do-pj---consulta-empresas.firebasestorage.app',
+    iosBundleId: 'com.hubdopj.consultaempresas',
   );
 }

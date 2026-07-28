@@ -3,16 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
+import 'package:consulta_cnpj_new/core/config/premium_access.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_request_args.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
+import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnd_orders_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnd_request_provider.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/widgets/active_order_exists_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/widgets/cnd_confirm_info_block.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/widgets/cnd_email_disclaimer.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/open_paywall.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
+import 'package:consulta_cnpj_new/services/cnd_orders_service.dart';
+import 'package:consulta_cnpj_new/services/free_user_limits_service.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class CndConfirmScreen extends ConsumerWidget {
@@ -40,25 +46,137 @@ class CndConfirmScreen extends ConsumerWidget {
   Future<void> _submit(BuildContext context, WidgetRef ref) async {
     CnpjLoadingOverlay.show(context);
     try {
-      await ref.read(cndOrderSubmitProvider.notifier).submit(
+      final plan = currentUserPlan(ref);
+      final cnpjDigits = (args.cnpj.cnpj ?? '').replaceAll(RegExp(r'\D'), '');
+
+      final existing = await PlanLimitsService.instance.findActiveOrder(
+        productKind: args.productKind,
+        cnpj: cnpjDigits,
+      );
+      if (existing != null) {
+        if (!context.mounted) {
+          CnpjLoadingOverlay.hide();
+          return;
+        }
+        CnpjLoadingOverlay.hide();
+        await ActiveOrderExistsSheet.show(context, existing);
+        return;
+      }
+
+      if (isPremiumActive(ref)) {
+        final canEmit = await PlanLimitsService.instance.canEmitOrder(
+          planProductId: plan.planProductId,
+          productKind: args.productKind,
+          cnpj: cnpjDigits,
+        );
+        if (!canEmit) {
+          if (!context.mounted) {
+            CnpjLoadingOverlay.hide();
+            return;
+          }
+          CnpjLoadingOverlay.hide();
+          final suggestedTier =
+              await PlanLimitsService.instance.suggestedTierForEmit(
+            args.productKind,
+          );
+          await openPaywall(
+            context,
+            PaywallRouteArgs(
+              origin: PaywallOrigin.cnd,
+              suggestedTier: suggestedTier,
+              showLimitSheet: true,
+            ),
+          );
+          return;
+        }
+      }
+
+      final order = await ref.read(cndOrderSubmitProvider.notifier).submit(
             company: args.cnpj,
             email: args.email,
             phone: args.phone,
             productKind: args.productKind,
           );
       ref.invalidate(cndOrdersProvider);
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        CnpjLoadingOverlay.hide();
+        return;
+      }
+
+      if (isPremiumActive(ref)) {
+        try {
+          final paid = await ref
+              .read(cndOrdersProvider.notifier)
+              .markOrderPaid(order.id);
+          if (!context.mounted) {
+            CnpjLoadingOverlay.hide();
+            return;
+          }
+          CnpjLoadingOverlay.hide();
+          await Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.cndOrderDetail,
+            (route) =>
+                route.settings.name == AppRoutes.home || route.isFirst,
+            arguments: CndOrderDetailArgs(order: paid),
+          );
+        } catch (_) {
+          if (!context.mounted) {
+            CnpjLoadingOverlay.hide();
+            return;
+          }
+          CnpjLoadingOverlay.hide();
+          final suggestedTier =
+              await PlanLimitsService.instance.suggestedTierForEmit(
+            args.productKind,
+          );
+          await openPaywall(
+            context,
+            PaywallRouteArgs(
+              origin: PaywallOrigin.cnd,
+              pendingOrderId: order.id,
+              suggestedTier: suggestedTier,
+              showLimitSheet: true,
+            ),
+          );
+        }
+        return;
+      }
+
       CnpjLoadingOverlay.hide();
-      await Navigator.pushNamedAndRemoveUntil(
+      await openPaywall(
         context,
-        AppRoutes.cndOrders,
-        (route) => route.settings.name == AppRoutes.home || route.isFirst,
+        PaywallRouteArgs(
+          origin: PaywallOrigin.cnd,
+          pendingOrderId: order.id,
+        ),
+      );
+    } on ActiveOrderExistsException catch (e) {
+      CnpjLoadingOverlay.hide();
+      if (!context.mounted) return;
+      await ActiveOrderExistsSheet.show(context, e.order);
+    } on PlanLimitReachedException catch (_) {
+      CnpjLoadingOverlay.hide();
+      if (!context.mounted) return;
+      final suggestedTier =
+          await PlanLimitsService.instance.suggestedTierForEmit(
+        args.productKind,
+      );
+      await openPaywall(
+        context,
+        PaywallRouteArgs(
+          origin: PaywallOrigin.cnd,
+          suggestedTier: suggestedTier,
+          showLimitSheet: true,
+        ),
       );
     } catch (e) {
-      if (!context.mounted) return;
       CnpjLoadingOverlay.hide();
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        const SnackBar(
+          content: Text('Ops, tivemos um problema... tente novamente'),
+        ),
       );
     }
   }

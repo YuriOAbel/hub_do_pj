@@ -9,10 +9,15 @@ import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/core/utils/cnpj_input_formatter.dart';
 import 'package:consulta_cnpj_new/core/utils/keyboard_utils.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_request_args.dart';
+import 'package:consulta_cnpj_new/domain/models/company_score_entry_args.dart';
+import 'package:consulta_cnpj_new/domain/models/home_entry_args.dart';
+import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
+import 'package:consulta_cnpj_new/domain/models/result_route_args.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnpj_search_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/company_score_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/home_tutorial_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/notification_list_provider.dart';
+import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/remote_config_provider.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_category_chips.dart';
@@ -21,17 +26,22 @@ import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_header.d
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_historic_tab.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_status_section.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_tutorial_coach.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_search_field.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_svg_icon.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/open_paywall.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/routes/app_route_observer.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/services/cnpj_search_exception.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.entry = const HomeEntryArgs()});
+
+  final HomeEntryArgs entry;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -49,11 +59,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   final _protestoKey = GlobalKey();
   HomeContentSection _section = HomeContentSection.consultar;
   bool _tutorialStarted = false;
+  bool _appOpenPaywallShown = false;
+  bool _pendingOnboardingResultHandled = false;
+  bool _pendingOnboardingResultOpening = false;
 
   @override
   void initState() {
     super.initState();
     _searchFocus.addListener(_onSearchFocusChanged);
+    if (widget.entry.openPaywall) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _appOpenPaywallShown) return;
+        _appOpenPaywallShown = true;
+        openPaywall(
+          context,
+          const PaywallRouteArgs(origin: PaywallOrigin.appOpen),
+        );
+      });
+    }
   }
 
   @override
@@ -97,7 +120,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _dismissSearchKeyboard();
-      ref.invalidate(companyScoreLatestThisMonthProvider);
+      ref.invalidate(companyScoresThisMonthProvider);
     });
   }
 
@@ -119,6 +142,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       setState(() {});
 
       await _pushFromHome(AppRoutes.result, arguments: result);
+    } on PlanLimitException catch (e) {
+      if (!mounted) return;
+      CnpjLoadingOverlay.hide();
+      _dismissSearchKeyboard();
+      await PremiumUpsellSheet.show(
+        context,
+        PaywallOrigin.searchLimit,
+        suggestedTier: e.suggestedTier,
+        limitMessage: e.message,
+        suggestedPlanTitle: e.suggestedPlanTitle,
+      );
     } on CnpjSearchException catch (e) {
       if (!mounted) return;
       CnpjLoadingOverlay.hide();
@@ -176,8 +210,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         ),
         onFinish: () {
           ref.read(homeTutorialProvider.notifier).markSeen();
+          _maybeOpenPendingOnboardingResult();
         },
       );
+    });
+  }
+
+  void _maybeOpenPendingOnboardingResult() {
+    if (_pendingOnboardingResultHandled ||
+        _pendingOnboardingResultOpening ||
+        !mounted) {
+      return;
+    }
+    _pendingOnboardingResultOpening = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final pendingCnpj = await ref
+            .read(onboardingFlowProvider.notifier)
+            .takePendingCnpj();
+        if (!mounted || pendingCnpj == null) return;
+
+        CnpjLoadingOverlay.show(context);
+        final result = await ref
+            .read(cnpjSearchProvider.notifier)
+            .searchByCnpj(pendingCnpj);
+        if (!mounted) return;
+
+        CnpjLoadingOverlay.hide();
+        await _pushFromHome(
+          AppRoutes.result,
+          arguments: ResultRouteArgs(cnpj: result, fromOnboarding: true),
+        );
+      } on PlanLimitException catch (e) {
+        if (!mounted) return;
+        CnpjLoadingOverlay.hide();
+        await PremiumUpsellSheet.show(
+          context,
+          PaywallOrigin.searchLimit,
+          suggestedTier: e.suggestedTier,
+          limitMessage: e.message,
+          suggestedPlanTitle: e.suggestedPlanTitle,
+        );
+      } on CnpjSearchException catch (e) {
+        if (!mounted) return;
+        CnpjLoadingOverlay.hide();
+        await CnpjAlertDialog.show(context, title: 'Atenção', message: e.message);
+      } finally {
+        _pendingOnboardingResultHandled = true;
+        _pendingOnboardingResultOpening = false;
+      }
     });
   }
 
@@ -185,7 +266,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   Widget build(BuildContext context) {
     final config = ref.watch(remoteConfigProvider);
     final banners = ref.read(remoteConfigProvider.notifier).bannerItems;
-    final isPremium = ref.watch(premiumStatusProvider).value ?? false;
+    final isPremium =
+        ref.watch(premiumStatusProvider).value?.isPremium ?? false;
     final filteredBanners = isPremium
         ? banners.where((b) => b.key != 'premium_nav').toList()
         : banners;
@@ -195,23 +277,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _maybeStartTutorial();
       });
+    } else if (hasSeenTutorial == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeOpenPendingOnboardingResult();
+      });
     }
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 450),
-          curve: Curves.easeOut,
-          builder: (context, opacity, child) {
-            return Opacity(opacity: opacity, child: child);
-          },
+        child: AppScreenFade(
           child: Column(
             children: [
               HomeHeader(
-                onNotificationsTap: () =>
-                    _pushFromHome(AppRoutes.notifications),
+                onMenuTap: () => _pushFromHome(AppRoutes.settings),
                 showUnreadBadge: ref.watch(notificationHasUnreadProvider),
               ),
               SizedBox(height: 1.h),
@@ -243,8 +322,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                 b.imageUrl ?? '',
                                 fit: BoxFit.contain,
                                 errorBuilder: (_, _, _) => Container(
-                                  color:
-                                      AppTheme.primary.withValues(alpha: 0.1),
+                                  color: AppTheme.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   child: Center(
                                     child: SvgPicture.asset(
                                       'assets/images/premium.svg',
@@ -269,15 +349,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               if (_section == HomeContentSection.consultar)
                 Padding(
                   key: _searchKey,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 5.w, vertical: 0.8.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 5.w,
+                    vertical: 0.8.h,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
                         child: CnpjSearchField(
                           controller: _searchController,
                           focusNode: _searchFocus,
-                          hintText: 'Digite o CNPJ e veja sua situação',
+                          hintText: 'Digite o PJ e veja sua situação',
                           keyboardType: TextInputType.number,
                           inputFormatters: const [CnpjInputFormatter()],
                           onChanged: (_) => setState(() {}),
@@ -310,8 +392,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                                 .logConsultaAvancada();
                             _pushFromHome(AppRoutes.searchAdvanced);
                           },
-                          child:
-                              const CnpjButtonIcon('assets/icons/filter.svg'),
+                          child: const CnpjButtonIcon(
+                            'assets/icons/filter.svg',
+                          ),
                         ),
                       ],
                     ],
@@ -325,8 +408,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
                     cndsKey: _cndsKey,
                     restricaoKey: _restricaoKey,
                     protestoKey: _protestoKey,
-                    onScoreStart: () =>
-                        _pushFromHome(AppRoutes.companyScore),
+                    onScoreEmptyTap: () => _pushFromHome(
+                      AppRoutes.companyScore,
+                      arguments: const CompanyScoreEntryArgs(
+                        startNewQuiz: true,
+                      ),
+                    ),
+                    onScoreSingleTap: (result) => _pushFromHome(
+                      AppRoutes.companyScore,
+                      arguments: CompanyScoreEntryArgs(initialResult: result),
+                    ),
+                    onScoreMultiTap: () =>
+                        _pushFromHome(AppRoutes.companyScoreList),
                     onMonitorTap: () => _openNotAvailable('monitorar'),
                     onCndTap: () => _openRequest('cnd'),
                     onRestricaoTap: () => _openRequest('restricao'),

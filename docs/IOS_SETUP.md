@@ -12,8 +12,7 @@ Checklist do que falta configurar manualmente para rodar no iOS (o projeto legad
 - [x] **`FirebaseService`** — usa `DefaultFirebaseOptions.currentPlatform`
 - [ ] **APNs** — upload da chave Auth Key `.p8` no Firebase Console → Project settings → Cloud Messaging (push iOS não funciona sem isso)
 
-> Bundle ID iOS ≠ package Android de propósito: Apple **não permite underscore** em Bundle ID.  
-> Android: `br.com.cgy.consulta_cnpj_empresas` · iOS: `br.com.cgy.consultaCnpjEmpresas`
+> Android e iOS usam o mesmo ID: `com.hubdopj.consultaempresas`
 
 ```bash
 # Opcional: atualizar só lib/firebase_options.dart a partir do Firebase CLI
@@ -23,16 +22,16 @@ firebase login
 
 ## Identidade e assinatura
 
-- [x] **Bundle ID** — `br.com.cgy.consultaCnpjEmpresas` (team `JAQM5S9JWA`)
+- [x] **Bundle ID** — `com.hubdopj.consultaempresas` (team `JAQM5S9JWA`)
 - [ ] **Apple Developer** — App ID, provisioning profile, signing team no `Runner.xcodeproj`
 - [ ] **App Store Connect** — criar app, screenshots, metadata
 
 ## Assinaturas (RevenueCat)
 
 - [ ] **Produto auto-renovável** no App Store Connect (mensal, equivalente R$ 4,99)
-- [ ] **RevenueCat** — conectar App Store, criar entitlement `premium`, offering `default`
+- [ ] **RevenueCat** — conectar App Store, criar entitlement `premium`, offering `hub_pj_cp_prod_mensal`
 - [ ] **StoreKit Configuration** (opcional) — arquivo `.storekit` para testes locais no simulador
-- [ ] **RC_API_KEY** — passar via `--dart-define=RC_API_KEY=...` no build
+- [ ] **RC keys** — `RC_IOS_API_KEY` / `RC_TEST_API_KEY` no `.env` (flutter_dotenv)
 
 ## Info.plist e permissões
 

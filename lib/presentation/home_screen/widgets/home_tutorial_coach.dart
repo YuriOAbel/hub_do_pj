@@ -91,22 +91,23 @@ class HomeTutorialCoach {
         key: keys.score,
         align: ContentAlign.bottom,
         title: 'Score empresarial',
-        body:
-            'Estime o score da empresa e acompanhe a saúde do seu CNPJ.',
+        body: 'Estime o score da empresa e acompanhe a saúde do seu CNPJ.',
       ),
       _target(
         identify: 'monitor',
         key: keys.monitor,
         align: ContentAlign.top,
         title: 'Monitorar minha empresa',
-        body: 'Ative o monitoramento e avisaremos sobre qualquer irregularidade.',
+        body:
+            'Ative o monitoramento e avisaremos sobre qualquer irregularidade.',
       ),
       _target(
         identify: 'cnds',
         key: keys.cnds,
         align: ContentAlign.top,
-        title: 'Emitir CNDs',
-        body: 'Emita até 10 certidões negativas importantes para a sua empresa.',
+        title: 'Gestão de CNDs',
+        body:
+            'Emita até 10 certidões negativas importantes para a sua empresa.',
       ),
       _target(
         identify: 'restricao',

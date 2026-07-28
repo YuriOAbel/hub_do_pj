@@ -39,7 +39,7 @@ final onboardingNameProvider =
     );
 
 typedef _$OnboardingName = AutoDisposeAsyncNotifier<String?>;
-String _$onboardingFlowHash() => r'3b78d2504299f65673dba0b11fda5fea216f1c6d';
+String _$onboardingFlowHash() => r'49ef18230d19fec6643c5bb8afe709032d092e57';
 
 /// See also [OnboardingFlow].
 @ProviderFor(OnboardingFlow)
