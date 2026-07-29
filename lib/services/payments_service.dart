@@ -419,10 +419,7 @@ class PaymentsService {
 
   /// True when RC has a known premium entitlement that is expired/cancelled.
   bool _rcShowsExpiredPremium(CustomerInfo info) {
-    final named =
-        info.entitlements.all[RevenueCatConfig.premiumEntitlementId];
     final candidates = <EntitlementInfo>[
-      if (named != null) named,
       ...info.entitlements.all.values,
     ];
     final now = DateTime.now();

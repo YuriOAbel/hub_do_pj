@@ -79,6 +79,10 @@ class CndConfirmScreen extends ConsumerWidget {
               await PlanLimitsService.instance.suggestedTierForEmit(
             args.productKind,
           );
+          if (!context.mounted) {
+            CnpjLoadingOverlay.hide();
+            return;
+          }
           await openPaywall(
             context,
             PaywallRouteArgs(
@@ -130,6 +134,10 @@ class CndConfirmScreen extends ConsumerWidget {
               await PlanLimitsService.instance.suggestedTierForEmit(
             args.productKind,
           );
+          if (!context.mounted) {
+            CnpjLoadingOverlay.hide();
+            return;
+          }
           await openPaywall(
             context,
             PaywallRouteArgs(
@@ -162,6 +170,7 @@ class CndConfirmScreen extends ConsumerWidget {
           await PlanLimitsService.instance.suggestedTierForEmit(
         args.productKind,
       );
+      if (!context.mounted) return;
       await openPaywall(
         context,
         PaywallRouteArgs(

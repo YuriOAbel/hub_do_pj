@@ -52,7 +52,6 @@ enum OnboardingStep {
   companyInfos,
   cnpj,
   rating,
-  paywall,
 }
 
 extension OnboardingPersonTypeX on OnboardingPersonType {

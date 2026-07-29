@@ -6,7 +6,7 @@ part of 'cnpj_search_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cnpjSearchHash() => r'139a8776179feb08d433425023d2fcfdee43910a';
+String _$cnpjSearchHash() => r'ad954b30582dd2611a899cb9f72b330e117e4d39';
 
 /// See also [CnpjSearch].
 @ProviderFor(CnpjSearch)

@@ -8,6 +8,7 @@ import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/favorite_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/historic_provider.dart';
+import 'package:consulta_cnpj_new/domain/providers/in_app_review_provider.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_about_tab.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_activity_tab.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/widgets/result_contact_tab.dart';
@@ -126,15 +127,29 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     }
   }
 
+  void _pop() {
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     const tabs = ['Sobre', 'Atividades', 'Sócios', 'Contato'];
     final fromOnboarding = widget.fromOnboarding;
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) return;
+        ref.read(inAppReviewPromptProvider.notifier).requestDeferred();
+      },
+      child: Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        automaticallyImplyLeading: !fromOnboarding,
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          onPressed: _pop,
+          icon: Icon(Icons.arrow_back, color: AppTheme.primary),
+        ),
         title: Row(
           children: [
             CnpjSvgIcon(
@@ -154,12 +169,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           ],
         ),
         actions: [
-          if (fromOnboarding)
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.close, color: AppTheme.primary),
-            )
-          else ...[
+          if (!fromOnboarding) ...[
             IconButton(
               key: _shareButtonKey,
               onPressed: _sharePdf,
@@ -235,6 +245,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ],
         ),
       ),
+    ),
     );
   }
 }

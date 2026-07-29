@@ -60,8 +60,6 @@ class FirebaseAnalyticsHelper {
       _firebase.logEvent(eventKey: 'onboarding_rating_skipped');
   Future<void> logOnboardingFeedback() =>
       _firebase.logEvent(eventKey: 'onboarding_feedback');
-  Future<void> logOnboardingPaywallSkipped() =>
-      _firebase.logEvent(eventKey: 'onboarding_paywall_skipped');
   Future<void> logInAppReviewRequested() =>
       _firebase.logEvent(eventKey: 'in_app_review_requested');
 

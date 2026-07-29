@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:consulta_cnpj_new/domain/models/onboarding_model.dart';
+import 'package:consulta_cnpj_new/domain/providers/in_app_review_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_cnpj_confirm_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_cnpj_step.dart';
@@ -9,7 +10,6 @@ import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboard
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_interests_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_name_step.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_occupation_step.dart';
-import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_paywall_placeholder.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/widgets/onboarding_rating_step.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
@@ -87,14 +87,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final draft = ref.read(onboardingFlowProvider);
     if (draft.interests.isEmpty) return;
     await _flow.logInterests();
-    _flow.advanceFromInterests();
+    await _flow.advanceFromInterests();
   }
 
   Future<void> _onCompanyInfosContinue() async {
     final draft = ref.read(onboardingFlowProvider);
     if (draft.companyInfos.isEmpty) return;
     await _flow.logCompanyInfos();
-    _flow.goTo(OnboardingStep.cnpj);
+    await _flow.advanceFromCompanyInfos();
   }
 
   Future<void> _onCnpjSearch() async {
@@ -116,16 +116,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _rating = value);
   }
 
+  Future<void> _goHomeAfterOnboarding() async {
+    await _flow.finishOnboarding();
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
+  }
+
   Future<void> _onRatingContinue() async {
     final stars = _rating.round();
     if (stars <= 0) return;
 
     if (stars >= 5) {
       await _flow.logRating(stars);
-      // Fire-and-forget: advance immediately; don't wait for review sheet.
-      _flow.requestInAppReview();
+      // Await native sheet + settle so iOS/Android can present before nav.
+      await ref.read(inAppReviewPromptProvider.notifier).request();
       if (!mounted) return;
-      _flow.goTo(OnboardingStep.paywall);
+      await _goHomeAfterOnboarding();
       return;
     }
 
@@ -135,24 +141,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (_feedbackController.text.trim().isEmpty) return;
       await _flow.logFeedback();
       if (!mounted) return;
-      _flow.goTo(OnboardingStep.paywall);
+      await _goHomeAfterOnboarding();
       return;
     }
 
     // 4 stars → advance without store review or feedback.
-    _flow.goTo(OnboardingStep.paywall);
+    await _goHomeAfterOnboarding();
   }
 
   Future<void> _onRatingSkip() async {
     await _flow.logRatingSkipped();
     if (!mounted) return;
-    _flow.goTo(OnboardingStep.paywall);
-  }
-
-  Future<void> _onPaywallSkip() async {
-    await _flow.finishOnboarding();
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    await _goHomeAfterOnboarding();
   }
 
   @override
@@ -206,9 +206,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               onRatingUpdate: _onRatingUpdate,
               onContinue: _onRatingContinue,
               onSkip: _onRatingSkip,
-            ),
-          OnboardingStep.paywall => OnboardingPaywallPlaceholder(
-              onSkip: _onPaywallSkip,
             ),
               },
             ),

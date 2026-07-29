@@ -6,7 +6,7 @@ part of 'paywall_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$paywallPlansHash() => r'6144a8da1ee6f6fdc1392c2c883ee1b84d64f212';
+String _$paywallPlansHash() => r'bc5ac41b6db44aca8969c916c480b388e923c423';
 
 /// See also [PaywallPlans].
 @ProviderFor(PaywallPlans)

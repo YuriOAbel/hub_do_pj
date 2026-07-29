@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/domain/models/onboarding_model.dart';
 import 'package:consulta_cnpj_new/services/firebase_messaging_service.dart';
-import 'package:consulta_cnpj_new/services/in_app_review_service.dart';
 import 'package:consulta_cnpj_new/services/onboarding_service.dart';
 import 'package:consulta_cnpj_new/services/profile_sync_service.dart';
 
@@ -89,13 +88,20 @@ class OnboardingFlow extends _$OnboardingFlow {
     state = state.copyWith(step: step);
   }
 
-  /// After interests: company infos if CNPJ selected, else CNPJ demo.
-  void advanceFromInterests() {
+  /// After interests: company infos if CNPJ selected, else persist + CNPJ demo.
+  Future<void> advanceFromInterests() async {
     if (state.wantsCnpjConsulta) {
       goTo(OnboardingStep.companyInfos);
-    } else {
-      goTo(OnboardingStep.cnpj);
+      return;
     }
+    await persistAnswers();
+    goTo(OnboardingStep.cnpj);
+  }
+
+  /// After company infos: persist profile answers, then CNPJ demo.
+  Future<void> advanceFromCompanyInfos() async {
+    await persistAnswers();
+    goTo(OnboardingStep.cnpj);
   }
 
   Future<void> persistAnswers() async {
@@ -164,17 +170,9 @@ class OnboardingFlow extends _$OnboardingFlow {
   Future<void> logFeedback() =>
       FirebaseAnalyticsHelper.instance.logOnboardingFeedback();
 
-  Future<void> logPaywallSkipped() =>
-      FirebaseAnalyticsHelper.instance.logOnboardingPaywallSkipped();
-
   Future<void> logCompleted() async {
     await FirebaseAnalyticsHelper.instance.logOnboardingCompleted();
     await FirebaseAnalyticsHelper.instance.logTutorialComplete();
-  }
-
-  Future<void> requestInAppReview() async {
-    await FirebaseAnalyticsHelper.instance.logInAppReviewRequested();
-    await InAppReviewService.instance.requestReview();
   }
 
   /// OS notification prompt — after company details, before rating review.
@@ -184,7 +182,6 @@ class OnboardingFlow extends _$OnboardingFlow {
 
   Future<void> finishOnboarding() async {
     await persistAnswers();
-    await logPaywallSkipped();
     await logCompleted();
     await ref.read(onboardingCompletedProvider.notifier).markCompleted();
   }

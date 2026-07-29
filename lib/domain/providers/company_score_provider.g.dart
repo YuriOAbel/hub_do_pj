@@ -6,7 +6,7 @@ part of 'company_score_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$companyScoreFlowHash() => r'b095c6ba3f1d8000837c55e70a747d9470164392';
+String _$companyScoreFlowHash() => r'bccdafa784c83573dcbe9b00a616aa21dd45d260';
 
 /// See also [CompanyScoreFlow].
 @ProviderFor(CompanyScoreFlow)

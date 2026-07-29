@@ -39,7 +39,12 @@ class ResultContactTab extends ConsumerWidget {
               PaywallOrigin.contact,
               (_) async {
                 await FirebaseAnalyticsHelper.instance.logTelefone();
-                await launchUrl(Uri.parse('tel:$_phone'));
+                final digits = _phone!.replaceAll(RegExp(r'\D'), '');
+                final uri = Uri(scheme: 'tel', path: digits);
+                if (!await canLaunchUrl(uri)) {
+                  throw StateError('cannot launch tel');
+                }
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
               },
             ),
           ),
@@ -56,7 +61,11 @@ class ResultContactTab extends ConsumerWidget {
               (_) async {
                 await FirebaseAnalyticsHelper.instance.logWhats();
                 final digits = _phone!.replaceAll(RegExp(r'\D'), '');
-                await launchUrl(Uri.parse('https://wa.me/55$digits'));
+                final uri = Uri.parse('https://wa.me/55$digits');
+                if (!await canLaunchUrl(uri)) {
+                  throw StateError('cannot launch whatsapp');
+                }
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
               },
             ),
           ),
@@ -72,7 +81,11 @@ class ResultContactTab extends ConsumerWidget {
               PaywallOrigin.contact,
               (_) async {
                 await FirebaseAnalyticsHelper.instance.logEnviarEmail();
-                await launchUrl(Uri.parse('mailto:$_email'));
+                final uri = Uri(scheme: 'mailto', path: _email!);
+                if (!await canLaunchUrl(uri)) {
+                  throw StateError('cannot launch mailto');
+                }
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
               },
             ),
           ),
