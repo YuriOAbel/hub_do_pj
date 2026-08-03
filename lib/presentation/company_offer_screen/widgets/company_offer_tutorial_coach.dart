@@ -5,32 +5,28 @@ import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
-class HomeTutorialTargets {
-  const HomeTutorialTargets({
-    required this.chips,
-    required this.search,
+class CompanyOfferTutorialTargets {
+  const CompanyOfferTutorialTargets({
+    required this.header,
+    required this.fullInfo,
     required this.score,
-    required this.monitor,
-    required this.cnds,
-    required this.restricao,
-    required this.protesto,
+    required this.products,
   });
 
-  final GlobalKey chips;
-  final GlobalKey search;
+  final GlobalKey header;
+  final GlobalKey fullInfo;
   final GlobalKey score;
-  final GlobalKey monitor;
-  final GlobalKey cnds;
-  final GlobalKey restricao;
-  final GlobalKey protesto;
+  final GlobalKey products;
 }
 
-class HomeTutorialCoach {
-  HomeTutorialCoach._();
+/// First-session coach on the company offer screen (replaces home tutorial).
+/// Marks [home_tutorial_seen] via caller [onFinish].
+class CompanyOfferTutorialCoach {
+  CompanyOfferTutorialCoach._();
 
   static TutorialCoachMark show({
     required BuildContext context,
-    required HomeTutorialTargets targets,
+    required CompanyOfferTutorialTargets targets,
     required VoidCallback onFinish,
   }) {
     final tutorial = TutorialCoachMark(
@@ -69,59 +65,39 @@ class HomeTutorialCoach {
     );
   }
 
-  static List<TargetFocus> _buildTargets(HomeTutorialTargets keys) {
+  static List<TargetFocus> _buildTargets(CompanyOfferTutorialTargets keys) {
     return [
       _target(
-        identify: 'chips',
-        key: keys.chips,
+        identify: 'header',
+        key: keys.header,
         align: ContentAlign.bottom,
-        title: 'Menu rápido',
-        body: 'Toque nas tags para navegar entre as principais funções do app.',
+        title: 'Empresa consultada',
+        body:
+            'Aqui ficam o nome, CNPJ e a situação cadastral da empresa que você buscou.',
       ),
       _target(
-        identify: 'search',
-        key: keys.search,
+        identify: 'fullInfo',
+        key: keys.fullInfo,
         align: ContentAlign.bottom,
-        title: 'Consulta de CNPJ',
+        title: 'Informações completas',
         body:
-            'Digite o número e veja a situação cadastral e os dados completos.',
+            'Toque para ver todos os dados cadastrais — sobre, atividades, sócios e contato.',
       ),
       _target(
         identify: 'score',
         key: keys.score,
         align: ContentAlign.bottom,
         title: 'Score empresarial',
-        body: 'Estime o score da empresa e acompanhe a saúde do seu CNPJ.',
-      ),
-      _target(
-        identify: 'monitor',
-        key: keys.monitor,
-        align: ContentAlign.top,
-        title: 'Monitorar minha empresa',
         body:
-            'Ative o monitoramento e avisaremos sobre qualquer irregularidade.',
+            'Estime o score desta empresa e acompanhe a visão de conformidade.',
       ),
       _target(
-        identify: 'cnds',
-        key: keys.cnds,
+        identify: 'products',
+        key: keys.products,
         align: ContentAlign.top,
-        title: 'Gestão de CNDs',
+        title: 'Serviços para este CNPJ',
         body:
-            'Emita até 10 certidões negativas importantes para a sua empresa.',
-      ),
-      _target(
-        identify: 'restricao',
-        key: keys.restricao,
-        align: ContentAlign.top,
-        title: 'Consulta de restrição',
-        body: 'Confira se o CNPJ tem restrições ou pendências em aberto.',
-      ),
-      _target(
-        identify: 'protesto',
-        key: keys.protesto,
-        align: ContentAlign.top,
-        title: 'Consulta de protesto',
-        body: 'Veja se há protestos ativos e evite surpresas desagradáveis.',
+            'Monitore a empresa, emita CNDs ou consulte restrições e protestos direto daqui.',
       ),
     ];
   }

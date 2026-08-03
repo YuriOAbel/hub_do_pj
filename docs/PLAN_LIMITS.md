@@ -24,8 +24,14 @@ Seeds atuais:
 | `hub_pj_test_mensal_app` / `hub_pj_mensal_app` / `app_access` | 0 | 0 | 0 | ∞ | 1 |
 | `hub_pj_test_mensal_cp_lg` / `hub_pj_mensal_cp_lg` / `compliance_light` | 2 | 2 | 2 | ∞ | **3** |
 | `hub_pj_test_mensal_cp_pl` / `hub_pj_mensal_cp_pl` / `compliance_plus` | 10 | 10 | 10 | ∞ | **1** |
+| `hub_pj_mensal_cp` / `hub_pj_mensal_cp:hub-pj-mensal-cp` | 2 | 2 | 2 | ∞ | **1** |
 
 `0` = feature bloqueada no plano. Upgrade via paywall.
+
+**Android experiment (consumables):** offering `hub_pj_cp_prod_consumables` (prod) / `hub_pj_cp_test_consumables` (Test Store — mesma regra `useTestStore` da assinatura). Package IDs iguais nos dois.
+
+- Assinatura `hub_pj_mensal_cp` → plano acima (2 CNPJs / 30 dias).
+- Consumíveis (`hub_pj_certidoes_app`, `hub_pj_restricoes_app`, `hub_pj_protestos_app`): **não** alteram `plan_product_id`. `PaymentsService.updateProfilePlanProductId` recusa IDs consumíveis; `recordConsumablePurchase` só grava `payments` (`recurrence=one_time`). `mark-order-paid` libera o pedido pendente sem checar cota quando o `payment` é `recurrence=one_time` ou `rc_product_id`/`plan_id` na lista de consumíveis.
 
 ### `orders` (uso de emissão)
 
@@ -37,9 +43,14 @@ WHERE user_id = :uid
   AND product_id = :p01|prot01|rest01
   AND status IN ('em_analise', 'processando', 'concluido')  -- cancelado NÃO conta
   AND created_at >= now() - interval ':quota_period_months months'
+  AND NOT consumable-funded  -- payments.recurrence = one_time OU rc_product_id/plan_id consumível
 ```
 
+Pedidos pagos por **consumível** (`one_time` / SKUs `hub_pj_*_app` one-shot) **não** consomem cota da assinatura. Pedidos `pending` sem payment ainda contam (ocupam slot até cancelar ou pagar).
+
 Pedido duplicado (mesmo CNPJ + mesmo `product_id` + status vigente): **bloqueado** antes de criar.
+
+**Plano `hub_pj_mensal_cp` no limite (2 CNPJs):** app abre sheet de especialistas + WhatsApp (sem paywall/upgrade).
 
 ### `company_scores` (uso de score)
 
@@ -67,7 +78,7 @@ Mesmo CNPJ no período: permite recalcular / retornar score existente (unique po
 | Function | Papel |
 |---|---|
 | `create-order` | Duplicate + cota (planos ≠ free); insert order |
-| `mark-order-paid` | Duplicate + cota; set `payment_status=paid` + `payment_id` |
+| `mark-order-paid` | Duplicate + cota (pula cota p/ pagamento consumível); set `payment_status=paid` + `payment_id` |
 | `calculate-company-score` | Cota score na janela do plano |
 
 Helper compartilhado: `supabase/functions/_shared/plan_limits.ts`.

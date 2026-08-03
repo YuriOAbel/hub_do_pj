@@ -87,14 +87,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final draft = ref.read(onboardingFlowProvider);
     if (draft.interests.isEmpty) return;
     await _flow.logInterests();
-    await _flow.advanceFromInterests();
+    try {
+      await _flow.advanceFromInterests();
+    } catch (e) {
+      if (!mounted) return;
+      _showSyncError(e);
+    }
   }
 
   Future<void> _onCompanyInfosContinue() async {
     final draft = ref.read(onboardingFlowProvider);
     if (draft.companyInfos.isEmpty) return;
     await _flow.logCompanyInfos();
-    await _flow.advanceFromCompanyInfos();
+    try {
+      await _flow.advanceFromCompanyInfos();
+    } catch (e) {
+      if (!mounted) return;
+      _showSyncError(e);
+    }
   }
 
   Future<void> _onCnpjSearch() async {
@@ -116,8 +126,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() => _rating = value);
   }
 
+  void _showSyncError(Object e) {
+    final message = e is StateError
+        ? e.message
+        : 'Não foi possível salvar seu perfil. Tente novamente.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
   Future<void> _goHomeAfterOnboarding() async {
-    await _flow.finishOnboarding();
+    try {
+      await _flow.finishOnboarding();
+    } catch (e) {
+      if (!mounted) return;
+      _showSyncError(e);
+      return;
+    }
     if (!mounted) return;
     Navigator.pushReplacementNamed(context, AppRoutes.home);
   }

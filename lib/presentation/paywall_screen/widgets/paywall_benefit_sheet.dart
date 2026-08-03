@@ -12,15 +12,20 @@ class PaywallBenefitSheet extends ConsumerWidget {
     super.key,
     required this.benefit,
     required this.tier,
+    this.packageId,
   });
 
   final PaywallBenefitData benefit;
   final int tier;
 
+  /// When set (consumable paywall), bullets use package-based period copy.
+  final String? packageId;
+
   static Future<void> show(
     BuildContext context, {
     required PaywallBenefitData benefit,
     required int tier,
+    String? packageId,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -29,14 +34,21 @@ class PaywallBenefitSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => PaywallBenefitSheet(benefit: benefit, tier: tier),
+      builder: (_) => PaywallBenefitSheet(
+        benefit: benefit,
+        tier: tier,
+        packageId: packageId,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final bullets = benefit.detailBulletsForTier(tier);
+    final packageId = this.packageId;
+    final bullets = packageId != null
+        ? benefit.detailBulletsForPackage(packageId)
+        : benefit.detailBulletsForTier(tier);
     final showCertificates = benefit.id == PaywallBenefitId.compliance;
     final catalogAsync =
         showCertificates ? ref.watch(cndCatalogProvider) : null;

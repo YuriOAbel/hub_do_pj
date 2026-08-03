@@ -5,6 +5,7 @@ import {
   PRODUCT_SUGGESTED_TIER,
   countDistinctActiveCnpjsInPeriod,
   findActiveOrderForCnpj,
+  isConsumableRcProduct,
   onlyDigits,
 } from '../_shared/plan_limits.ts';
 
@@ -122,7 +123,7 @@ serve(async (req) => {
 
     const { data: payment, error: paymentError } = await admin
       .from('payments')
-      .select('id, profile_id, is_active, status')
+      .select('id, profile_id, is_active, status, rc_product_id, plan_id, recurrence')
       .eq('id', paymentId)
       .maybeSingle();
 
@@ -134,6 +135,11 @@ serve(async (req) => {
       return jsonResponse({ error: 'Pagamento inválido' }, 403);
     }
 
+    const consumablePurchase = isConsumableRcProduct(
+      typeof payment.rc_product_id === 'string' ? payment.rc_product_id : null,
+      typeof payment.plan_id === 'string' ? payment.plan_id : null,
+    ) || payment.recurrence === 'one_time';
+
     const { data: profile, error: profileError } = await admin
       .from('profiles')
       .select('id, plan_product_id')
@@ -143,38 +149,6 @@ serve(async (req) => {
     if (profileError || !profile) {
       console.error('mark-order-paid profile:', profileError);
       return jsonResponse({ error: 'Perfil não encontrado' }, 403);
-    }
-
-    const planProductId =
-      typeof profile.plan_product_id === 'string' &&
-        profile.plan_product_id.trim()
-        ? profile.plan_product_id.trim()
-        : 'free';
-
-    const { data: limits, error: limitsError } = await admin
-      .from('plan_limits')
-      .select('*')
-      .eq('plan_product_id', planProductId)
-      .maybeSingle();
-
-    if (limitsError) {
-      console.error('mark-order-paid limits:', limitsError);
-      return jsonResponse({ error: 'Erro ao carregar limites do plano' }, 500);
-    }
-
-    if (!limits) {
-      console.error(
-        'mark-order-paid missing plan_limits for',
-        planProductId,
-      );
-      return jsonResponse(
-        {
-          error: 'Limites do plano não configurados',
-          code: 'PLAN_LIMITS_MISSING',
-          planProductId,
-        },
-        500,
-      );
     }
 
     const productId = String(order.product_id ?? '');
@@ -202,32 +176,66 @@ serve(async (req) => {
       );
     }
 
-    const limit = Number(
-      (limits as Record<string, unknown>)[limitColumn] ?? 0,
-    );
-    const periodMonths = Number(limits?.quota_period_months ?? 1);
-    const { used, cnpjs } = await countDistinctActiveCnpjsInPeriod(
-      admin,
-      user.id,
-      productId,
-      periodMonths,
-      orderId,
-    );
+    if (!consumablePurchase) {
+      const planProductId =
+        typeof profile.plan_product_id === 'string' &&
+          profile.plan_product_id.trim()
+          ? profile.plan_product_id.trim()
+          : 'free';
 
-    const wouldConsume = !cnpjs.has(orderCnpj);
-    if (limit <= 0 || (wouldConsume && used >= limit)) {
-      return jsonResponse(
-        {
-          error: 'Limite do plano atingido para este produto',
-          code: 'PLAN_LIMIT_REACHED',
+      const { data: limits, error: limitsError } = await admin
+        .from('plan_limits')
+        .select('*')
+        .eq('plan_product_id', planProductId)
+        .maybeSingle();
+
+      if (limitsError) {
+        console.error('mark-order-paid limits:', limitsError);
+        return jsonResponse({ error: 'Erro ao carregar limites do plano' }, 500);
+      }
+
+      if (!limits) {
+        console.error(
+          'mark-order-paid missing plan_limits for',
           planProductId,
-          productId,
-          limit,
-          used,
-          suggestedTier: PRODUCT_SUGGESTED_TIER[productId] ?? 2,
-        },
-        403,
+        );
+        return jsonResponse(
+          {
+            error: 'Limites do plano não configurados',
+            code: 'PLAN_LIMITS_MISSING',
+            planProductId,
+          },
+          500,
+        );
+      }
+
+      const limit = Number(
+        (limits as Record<string, unknown>)[limitColumn] ?? 0,
       );
+      const periodMonths = Number(limits?.quota_period_months ?? 1);
+      const { used, cnpjs } = await countDistinctActiveCnpjsInPeriod(
+        admin,
+        user.id,
+        productId,
+        periodMonths,
+        orderId,
+      );
+
+      const wouldConsume = !cnpjs.has(orderCnpj);
+      if (limit <= 0 || (wouldConsume && used >= limit)) {
+        return jsonResponse(
+          {
+            error: 'Limite do plano atingido para este produto',
+            code: 'PLAN_LIMIT_REACHED',
+            planProductId,
+            productId,
+            limit,
+            used,
+            suggestedTier: PRODUCT_SUGGESTED_TIER[productId] ?? 2,
+          },
+          403,
+        );
+      }
     }
 
     const { data: updated, error: updateError } = await admin
@@ -244,6 +252,17 @@ serve(async (req) => {
     if (updateError || !updated) {
       console.error('mark-order-paid update:', updateError);
       return jsonResponse({ error: 'Erro ao confirmar pagamento' }, 500);
+    }
+
+    if (consumablePurchase) {
+      const { error: deactivateError } = await admin
+        .from('payments')
+        .update({ is_active: false })
+        .eq('id', paymentId)
+        .eq('recurrence', 'one_time');
+      if (deactivateError) {
+        console.error('mark-order-paid deactivate consumable:', deactivateError);
+      }
     }
 
     return jsonResponse(toApiOrder(updated as Record<string, unknown>));

@@ -210,7 +210,10 @@ class CndOrdersService {
     }
   }
 
-  Future<CndOrderModel> markOrderPaid(String orderId) async {
+  Future<CndOrderModel> markOrderPaid(
+    String orderId, {
+    String? paymentId,
+  }) async {
     final auth = SupabaseAuthService.instance;
     await _ensureAuthReady(auth);
 
@@ -222,9 +225,11 @@ class CndOrdersService {
     }
 
     try {
-      final paymentId =
-          await PaymentsService.instance.ensureRevenueCatPaymentId();
-      if (paymentId == null || paymentId.isEmpty) {
+      final resolvedPaymentId =
+          await PaymentsService.instance.ensureRevenueCatPaymentId(
+        preferredPaymentId: paymentId,
+      );
+      if (resolvedPaymentId == null || resolvedPaymentId.isEmpty) {
         throw CndOrdersException(
           'Pagamento não vinculado. Tente novamente em instantes.',
         );
@@ -234,7 +239,7 @@ class CndOrdersService {
         'mark-order-paid',
         body: {
           'orderId': orderId,
-          'paymentId': paymentId,
+          'paymentId': resolvedPaymentId,
         },
         headers: {
           'Authorization': 'Bearer ${auth.currentJwt}',
@@ -245,6 +250,9 @@ class CndOrdersService {
       if (data is! Map) {
         throw CndOrdersException('Erro ao confirmar pagamento do pedido');
       }
+
+      await PaymentsService.instance
+          .deactivateConsumablePayment(resolvedPaymentId);
 
       return CndOrderModel.fromJson(Map<String, dynamic>.from(data));
     } on CndOrdersException {

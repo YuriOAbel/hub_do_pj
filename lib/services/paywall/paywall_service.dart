@@ -16,46 +16,116 @@ class PaywallService {
 
   List<PlanModel>? _cachedMockPlans;
 
-  Future<List<PlanModel>> getAvailablePlans() async {
-    if (RevenueCatConfig.forceMockPlans) return _loadMockPlans();
-    if (RevenueCatConfig.useMock) return _loadMockPlans();
+  Future<List<PlanModel>> getAvailablePlans({
+    String? offeringId,
+    List<String>? packageIds,
+  }) async {
+    if (RevenueCatConfig.forceMockPlans) {
+      return _filterPlans(
+        await _loadMockPlans(forConsumable: offeringId != null),
+        packageIds,
+      );
+    }
+    if (RevenueCatConfig.useMock) {
+      return _filterPlans(
+        await _loadMockPlans(forConsumable: offeringId != null),
+        packageIds,
+      );
+    }
     try {
-      final offering = await _fetchOffering();
+      final resolvedOfferingId = offeringId ?? RevenueCatConfig.offeringId;
+      final offering = await _fetchOffering(offeringId: resolvedOfferingId);
       if (offering == null || offering.availablePackages.isEmpty) {
-        // Never mix mock plan ids with live RC purchase path.
         throw StateError(
-          'Offering "${RevenueCatConfig.offeringId}" unavailable or empty',
+          'Offering "$resolvedOfferingId" unavailable or empty',
         );
       }
       debugPrint(
-        'PaywallService: offering=${RevenueCatConfig.offeringId} '
+        'PaywallService: offering=$resolvedOfferingId '
         'packages=${offering.availablePackages.map((p) => p.identifier).join(",")} '
         'metadataKeys=${offering.metadata.keys.join(",")}',
       );
-      final packages = offering.availablePackages;
+      var packages = offering.availablePackages;
+      if (packageIds != null && packageIds.isNotEmpty) {
+        final wanted = packageIds.toSet();
+        packages = [
+          for (final p in packages)
+            if (wanted.contains(p.identifier)) p,
+        ];
+        // Preserve caller order when possible.
+        packages.sort((a, b) {
+          final ai = packageIds.indexOf(a.identifier);
+          final bi = packageIds.indexOf(b.identifier);
+          return ai.compareTo(bi);
+        });
+      }
+      if (packages.isEmpty) {
+        throw StateError(
+          'Offering "$resolvedOfferingId" has no matching packages '
+          '(filter=${packageIds?.join(",")})',
+        );
+      }
+      final usePackageMeta =
+          RevenueCatConfig.isConsumableOfferingId(resolvedOfferingId);
       final plans = [
         for (var i = 0; i < packages.length; i++)
           _mapPackageToPlan(
             packages[i],
-            tier: i + 1,
+            tier: _tierForPackage(packages[i], index: i),
             offeringMetadata: offering.metadata,
+            metadataByPackageId: usePackageMeta,
           ),
       ];
       return _ensureSingleSelection(plans);
     } on MissingPluginException {
-      return _loadMockPlans();
+      return _filterPlans(
+        await _loadMockPlans(forConsumable: offeringId != null),
+        packageIds,
+      );
     } catch (e) {
       debugPrint('PaywallService.getAvailablePlans: $e');
       rethrow;
     }
   }
 
-  Future<Offering?> _fetchOffering() async {
+  List<PlanModel> _filterPlans(
+    List<PlanModel> plans,
+    List<String>? packageIds,
+  ) {
+    if (packageIds == null || packageIds.isEmpty) return plans;
+    final wanted = packageIds.toSet();
+    final filtered = [
+      for (final id in packageIds)
+        for (final plan in plans)
+          if (plan.id == id || plan.productId == id) plan,
+    ];
+    if (filtered.isNotEmpty) return _ensureSingleSelection(filtered);
+    final fallback = [
+      for (final plan in plans)
+        if (wanted.contains(plan.id) ||
+            (plan.productId != null && wanted.contains(plan.productId)))
+          plan,
+    ];
+    return _ensureSingleSelection(fallback);
+  }
+
+  int _tierForPackage(Package pkg, {required int index}) {
+    if (RevenueCatConfig.isMonthlyCpProductId(pkg.identifier) ||
+        RevenueCatConfig.isMonthlyCpProductId(pkg.storeProduct.identifier)) {
+      return 2;
+    }
+    if (RevenueCatConfig.isConsumablePackageId(pkg.identifier)) {
+      return 2;
+    }
+    return index + 1;
+  }
+
+  Future<Offering?> _fetchOffering({String? offeringId}) async {
     final offerings = await RevenueCatService.instance.getOfferings();
     if (offerings == null) return null;
 
-    final offeringId = RevenueCatConfig.offeringId;
-    if (offeringId.isEmpty) {
+    final id = offeringId ?? RevenueCatConfig.offeringId;
+    if (id.isEmpty) {
       if (RevenueCatConfig.useTestStore) {
         debugPrint(
           'PaywallService: RC_TEST_OFFERING_ID empty — set in .env',
@@ -65,13 +135,22 @@ class PaywallService {
       return offerings.current;
     }
 
-    final offering = offerings.all[offeringId];
+    final offering = offerings.all[id];
     if (offering != null) return offering;
 
     // Test mode: never fall back to another offering.
     if (RevenueCatConfig.useTestStore) {
       debugPrint(
-        'PaywallService: offering "$offeringId" missing. '
+        'PaywallService: offering "$id" missing. '
+        'available=${offerings.all.keys.join(",")}',
+      );
+      return null;
+    }
+
+    // Consumable offering must not fall back to subscription offering.
+    if (RevenueCatConfig.isConsumableOfferingId(id)) {
+      debugPrint(
+        'PaywallService: consumable offering "$id" missing. '
         'available=${offerings.all.keys.join(",")}',
       );
       return null;
@@ -80,22 +159,26 @@ class PaywallService {
     return offerings.current;
   }
 
-  /// Maps RC package + offering metadata key `plan_{tier}`.
+  /// Maps RC package + offering metadata.
   ///
-  /// Expected offering metadata (test + prod):
+  /// Subscription offerings use `plan_{tier}`.
+  /// Consumable offering uses package identifier keys:
   /// ```json
   /// {
-  ///   "plan_1": { "title": "...", "subtitle": "", "badgeText": null, "isSelected": false },
-  ///   "plan_2": { ... },
-  ///   "plan_3": { ... }
+  ///   "hub_pj_mensal_cp": { "title": "...", "subtitle": "...", "isSelected": true },
+  ///   "hub_pj_certidoes_app": { "isSelected": false, ... }
   /// }
   /// ```
+  /// `isSelected` drives the initial highlighted plan.
   PlanModel _mapPackageToPlan(
     Package pkg, {
     required int tier,
     required Map<String, Object> offeringMetadata,
+    bool metadataByPackageId = false,
   }) {
-    final meta = _planMetadata(offeringMetadata, tier);
+    final meta = metadataByPackageId
+        ? _packageMetadata(offeringMetadata, pkg.identifier)
+        : _planMetadata(offeringMetadata, tier);
     final title = _metaString(meta, 'title');
     final subtitle = _metaString(meta, 'subtitle');
     final badgeText = _metaString(meta, 'badgeText');
@@ -114,6 +197,7 @@ class PaywallService {
       periodLabel: _periodLabel(
         packageType: pkg.packageType,
         subscriptionPeriod: pkg.storeProduct.subscriptionPeriod,
+        packageId: pkg.identifier,
       ),
       productId: pkg.storeProduct.identifier,
       price: pkg.storeProduct.price,
@@ -147,9 +231,19 @@ class PaywallService {
   String? _periodLabel({
     required PackageType packageType,
     String? subscriptionPeriod,
+    String? packageId,
   }) {
+    if (packageId != null &&
+        RevenueCatConfig.isConsumablePackageId(packageId)) {
+      return null;
+    }
     if (packageType == PackageType.annual) return '/ano';
     if (packageType == PackageType.monthly) return '/mês';
+    if (packageType == PackageType.custom ||
+        packageType == PackageType.unknown) {
+      final period = (subscriptionPeriod ?? '').toUpperCase();
+      if (period.isEmpty) return null;
+    }
 
     final period = (subscriptionPeriod ?? '').toUpperCase();
     if (period.contains('Y') || period == 'P1Y') return '/ano';
@@ -161,7 +255,20 @@ class PaywallService {
     Map<String, Object> offeringMetadata,
     int tier,
   ) {
-    final raw = offeringMetadata['plan_$tier'];
+    return _decodeMetadata(offeringMetadata['plan_$tier'], label: 'plan_$tier');
+  }
+
+  Map<String, dynamic>? _packageMetadata(
+    Map<String, Object> offeringMetadata,
+    String packageId,
+  ) {
+    return _decodeMetadata(
+      offeringMetadata[packageId],
+      label: packageId,
+    );
+  }
+
+  Map<String, dynamic>? _decodeMetadata(Object? raw, {required String label}) {
     if (raw == null) return null;
 
     if (raw is Map) {
@@ -175,7 +282,7 @@ class PaywallService {
           return Map<String, dynamic>.from(decoded);
         }
       } catch (e) {
-        debugPrint('PaywallService: invalid plan_$tier metadata JSON: $e');
+        debugPrint('PaywallService: invalid $label metadata JSON: $e');
       }
     }
 
@@ -201,22 +308,79 @@ class PaywallService {
     return null;
   }
 
-  /// Exactly one plan selected; if none/metadata missing, pick middle tier.
+  /// Exactly one plan selected from offering metadata `isSelected`.
+  /// If several are flagged (e.g. monthly + consumable), keep the last.
+  /// If none, pick middle index.
   List<PlanModel> _ensureSingleSelection(List<PlanModel> plans) {
     if (plans.isEmpty) return plans;
 
     final selectedCount = plans.where((p) => p.isSelected).length;
     if (selectedCount == 1) return plans;
 
-    final fallbackIndex = plans.length ~/ 2;
+    var keepIndex = plans.length ~/ 2;
+    if (selectedCount > 1) {
+      for (var i = 0; i < plans.length; i++) {
+        if (plans[i].isSelected) keepIndex = i;
+      }
+    }
+
     return [
       for (var i = 0; i < plans.length; i++)
-        plans[i].copyWith(isSelected: i == fallbackIndex),
+        plans[i].copyWith(isSelected: i == keepIndex),
     ];
   }
 
-  Future<List<PlanModel>> _loadMockPlans() async {
-    if (_cachedMockPlans != null) return _cachedMockPlans!;
+  Future<List<PlanModel>> _loadMockPlans({bool forConsumable = false}) async {
+    if (!forConsumable && _cachedMockPlans != null) return _cachedMockPlans!;
+    if (forConsumable) {
+      return _ensureSingleSelection(const [
+        PlanModel(
+          id: RevenueCatConfig.monthlyCpPackageId,
+          productId: RevenueCatConfig.monthlyCpPackageId,
+          title: 'Plano mensal compliance',
+          subtitle: 'Voce paga e recebe todo o mes',
+          priceText: r'R$ 49,99',
+          periodLabel: '/mês',
+          tier: 2,
+          isSelected: true,
+          price: 49.99,
+          currencyCode: 'BRL',
+        ),
+        PlanModel(
+          id: RevenueCatConfig.certidoesConsumablePackageId,
+          productId: RevenueCatConfig.certidoesConsumablePackageId,
+          title: 'Pagamento único no valor',
+          subtitle: 'Voce paga e recebe uma vez',
+          priceText: r'R$ 29,99',
+          tier: 2,
+          isSelected: false,
+          price: 29.99,
+          currencyCode: 'BRL',
+        ),
+        PlanModel(
+          id: RevenueCatConfig.restricoesConsumablePackageId,
+          productId: RevenueCatConfig.restricoesConsumablePackageId,
+          title: 'Pagamento único no valor',
+          subtitle: 'Voce paga e recebe uma vez',
+          priceText: r'R$ 19,99',
+          tier: 2,
+          isSelected: true,
+          price: 19.99,
+          currencyCode: 'BRL',
+        ),
+        PlanModel(
+          id: RevenueCatConfig.protestosConsumablePackageId,
+          productId: RevenueCatConfig.protestosConsumablePackageId,
+          title: 'Pagamento único no valor',
+          subtitle: 'Voce paga e recebe uma vez',
+          priceText: r'R$ 19,99',
+          tier: 2,
+          isSelected: true,
+          price: 19.99,
+          currencyCode: 'BRL',
+        ),
+      ]);
+    }
     try {
       final raw = await rootBundle.loadString(_plansAsset);
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -311,9 +475,14 @@ class PaywallService {
     }
   }
 
-  Future<PurchaseSyncResult?> purchasePlan(String planId) async {
+  Future<PurchaseSyncResult?> purchasePlan(
+    String planId, {
+    String? offeringId,
+  }) async {
     if (RevenueCatConfig.forceMockPlans || RevenueCatConfig.useMock) {
-      final mockPlans = await _loadMockPlans();
+      final mockPlans = await _loadMockPlans(
+        forConsumable: RevenueCatConfig.isConsumableOfferingId(offeringId),
+      );
       PlanModel? mockPlan;
       for (final p in mockPlans) {
         if (p.id == planId || p.productId == planId) {
@@ -322,20 +491,41 @@ class PaywallService {
         }
       }
       mockPlan ??= mockPlans.isNotEmpty ? mockPlans.first : null;
-      final productId =
-          mockPlan?.productId ?? mockPlan?.id ?? planId;
-      final tier = mockPlan?.tier ?? 3;
+      final productId = mockPlan?.productId ?? mockPlan?.id ?? planId;
+
+        if (RevenueCatConfig.isConsumablePackageId(planId) ||
+          RevenueCatConfig.isConsumableProductId(productId)) {
+        final paymentId =
+            await PaymentsService.instance.recordConsumablePurchase(
+          productId: productId,
+          planId: planId,
+        );
+        return PurchaseSyncResult(
+          plan: const UserPlanState(),
+          transactionId:
+              'mock_consumable_${planId}_${DateTime.now().millisecondsSinceEpoch}',
+          price: mockPlan?.price ?? 0,
+          currencyCode: _normalizeCurrencyCode(mockPlan?.currencyCode),
+          paymentId: paymentId,
+        );
+      }
+
+      final tier = RevenueCatConfig.tierForPlanProductId(productId) ??
+          mockPlan?.tier ??
+          3;
+      final canonicalId =
+          RevenueCatConfig.normalizeStoreProductId(productId);
       final plan = await PaymentsService.instance.syncUserPlan(
-        planId: productId,
+        planId: canonicalId,
         knownTier: tier,
-        knownProductId: productId,
+        knownProductId: canonicalId,
         planTitle: mockPlan?.title ?? 'Premium',
       );
       return PurchaseSyncResult(
         plan: plan.isPremium
             ? plan
             : UserPlanState(
-                planProductId: productId,
+                planProductId: canonicalId,
                 tier: tier,
                 planTitle: mockPlan?.title ?? 'Premium',
               ),
@@ -346,11 +536,10 @@ class PaywallService {
       );
     }
     try {
-      final offering = await _fetchOffering();
+      final resolvedOfferingId = offeringId ?? RevenueCatConfig.offeringId;
+      final offering = await _fetchOffering(offeringId: resolvedOfferingId);
       if (offering == null) {
-        throw Exception(
-          'Offering not found: ${RevenueCatConfig.offeringId}',
-        );
+        throw Exception('Offering not found: $resolvedOfferingId');
       }
       final package = offering.availablePackages.firstWhere(
         (p) => p.identifier == planId,
@@ -363,29 +552,62 @@ class PaywallService {
             await RevenueCatService.instance.purchasePackage(package);
         if (purchaseResult == null) return null;
         final info = purchaseResult.customerInfo;
-        // Prefer package product id + package index as tier source of truth.
-        final productId = package.storeProduct.identifier;
-        final tier = offering.availablePackages.indexOf(package) + 1;
+        final storeProductId = package.storeProduct.identifier;
+        final txId = purchaseResult.storeTransaction.transactionIdentifier;
+
+        if (RevenueCatConfig.isConsumablePackageId(package.identifier) ||
+            RevenueCatConfig.isConsumableProductId(storeProductId)) {
+          final paymentId =
+              await PaymentsService.instance.recordConsumablePurchase(
+            customerInfo: info,
+            productId: storeProductId,
+            planId: package.identifier,
+            packageType: package.packageType,
+          );
+          return PurchaseSyncResult(
+            plan: const UserPlanState(),
+            transactionId: txId.isNotEmpty
+                ? txId
+                : '${storeProductId}_${DateTime.now().millisecondsSinceEpoch}',
+            price: storePrice,
+            currencyCode: storeCurrency,
+            paymentId: paymentId,
+          );
+        }
+
+        final canonicalId =
+            RevenueCatConfig.normalizeStoreProductId(storeProductId);
+        final tier = RevenueCatConfig.tierForPlanProductId(canonicalId) ??
+            _tierForPackage(
+              package,
+              index: offering.availablePackages.indexOf(package),
+            );
         final plan = await PaymentsService.instance.syncUserPlan(
           customerInfo: info,
-          planId: productId,
+          planId: canonicalId,
           packageType: package.packageType,
           planTitle: null,
           knownTier: tier > 0 ? tier : null,
-          knownProductId: productId,
+          knownProductId: canonicalId,
         );
-        final txId = purchaseResult.storeTransaction.transactionIdentifier;
         return PurchaseSyncResult(
           plan: plan,
           transactionId: txId.isNotEmpty
               ? txId
-              : '${productId}_${DateTime.now().millisecondsSinceEpoch}',
+              : '${canonicalId}_${DateTime.now().millisecondsSinceEpoch}',
           price: storePrice,
           currencyCode: storeCurrency,
         );
       } on PurchaseCancelledException {
         return null;
       } on ProductAlreadyPurchasedException {
+        if (RevenueCatConfig.isConsumablePackageId(planId) ||
+            RevenueCatConfig.isConsumableProductId(planId) ||
+            RevenueCatConfig.isConsumableProductId(
+              package.storeProduct.identifier,
+            )) {
+          return null;
+        }
         final plan =
             await PaymentsService.instance.syncUserPlan(planId: planId);
         return PurchaseSyncResult(

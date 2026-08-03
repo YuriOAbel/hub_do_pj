@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_identity_header.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
+import 'package:sizer/sizer.dart';
 
 class ResultHeaderCard extends StatelessWidget {
   const ResultHeaderCard({super.key, required this.cnpj});
@@ -26,37 +26,10 @@ class ResultHeaderCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            cnpj.nome ?? '',
-            textAlign: TextAlign.left,
-            style: GoogleFonts.inter(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          SizedBox(height: 0.5.h),
-          Text(
-            cnpj.cnpj ?? '',
-            textAlign: TextAlign.left,
-            style: GoogleFonts.inter(fontSize: 13.sp, color: AppTheme.textSecondary),
-          ),
-          if (cnpj.situacao != null) ...[
-            SizedBox(height: 0.5.h),
-            Text(
-              'Situação: ${cnpj.situacao}',
-              textAlign: TextAlign.left,
-              style: GoogleFonts.inter(
-                fontSize: 13.sp,
-                color: AppTheme.success,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
+      child: CnpjIdentityHeader(
+        companyName: cnpj.nome ?? '',
+        cnpj: cnpj.cnpj ?? '',
+        situacao: cnpj.situacao,
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
+import 'package:consulta_cnpj_new/services/paywall/revenuecat_config.dart';
 import 'package:consulta_cnpj_new/services/supabase_auth_service.dart';
 
 class PlanLimits {
@@ -367,6 +368,8 @@ class PlanLimitsService {
     return 3;
   }
 
+  /// Distinct active CNPJs that consume subscription quota.
+  /// Consumable-funded orders (`one_time` / RC consumable SKUs) are excluded.
   Future<Set<String>> _distinctActiveCnpjsInPeriod(
     String productId,
     int quotaPeriodMonths,
@@ -383,7 +386,10 @@ class PlanLimitsService {
           );
       final rows = await client
           .from('orders')
-          .select('cnpj')
+          .select(
+            'cnpj, payment_id, payment_status, '
+            'payments(recurrence, rc_product_id, plan_id)',
+          )
           .eq('user_id', userId)
           .eq('product_id', productId)
           .inFilter('status', ['em_analise', 'processando', 'concluido'])
@@ -391,7 +397,9 @@ class PlanLimitsService {
 
       final out = <String>{};
       for (final row in rows as List) {
-        final digits = (row['cnpj'] as String? ?? '')
+        final map = Map<String, dynamic>.from(row as Map);
+        if (_isConsumableFundedOrder(map)) continue;
+        final digits = (map['cnpj'] as String? ?? '')
             .replaceAll(RegExp(r'\D'), '');
         if (digits.length == 14) out.add(digits);
       }
@@ -400,6 +408,28 @@ class PlanLimitsService {
       debugPrint('PlanLimitsService._distinctActiveCnpjsInPeriod: $e');
       return {};
     }
+  }
+
+  bool _isConsumableFundedOrder(Map<String, dynamic> orderRow) {
+    final paymentRaw = orderRow['payments'];
+    Map<String, dynamic>? payment;
+    if (paymentRaw is Map) {
+      payment = Map<String, dynamic>.from(paymentRaw);
+    } else if (paymentRaw is List && paymentRaw.isNotEmpty) {
+      final first = paymentRaw.first;
+      if (first is Map) {
+        payment = Map<String, dynamic>.from(first);
+      }
+    }
+    if (payment == null) return false;
+
+    if (payment['recurrence'] == 'one_time') return true;
+    final rcProductId = payment['rc_product_id'] as String?;
+    final planId = payment['plan_id'] as String?;
+    return RevenueCatConfig.isConsumableProductId(rcProductId) ||
+        RevenueCatConfig.isConsumableProductId(planId) ||
+        RevenueCatConfig.isConsumablePackageId(planId ?? '') ||
+        RevenueCatConfig.isConsumablePackageId(rcProductId ?? '');
   }
 
   Map<String, dynamic> _orderRowToApiJson(Map<String, dynamic> map) {

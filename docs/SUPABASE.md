@@ -18,9 +18,17 @@ supabase link --project-ref kpkctuuzhbnqudemeudh
 
 ## Flutter — Auth anônima + CND
 
-O app autentica no splash via `SupabaseAuthService` (`signInAnonymously`, sem Turnstile por enquanto). Session em SharedPreferences + Keychain. Após sessão, grava `profiles.device_id`. Onboarding sincroniza `name`, `person_type`, `occupation`, `occupation_other`, `interest_ids`.
+O app autentica no splash via `SupabaseAuthService` (`signInAnonymously`, sem Turnstile por enquanto). Session em SharedPreferences + Keychain. Após sessão, **aguarda** Edge Function `sync-profile` (`purpose=bootstrap`, só `device_id`). Onboarding chama `purpose=onboarding` com **name, person_type, occupation, interest_ids** obrigatórios — sync falhou = não completa onboarding. Campos vazios/null são rejeitados. Profile ativo sem `device_id` é soft-deletado (órfão). Coluna `onboarded_at` marca onboarding completo.
 
-Pedidos CND/protesto/restrição são criados neste projeto via Edge Function `create-order` (JWT obrigatório). O pedido só é aceito se `profiles.device_id` estiver preenchido para o user autenticado. Listagem no app: PostgREST `orders` filtrado por `user_id = auth.uid()` (qualquer `product_id`).
+Pedidos CND/protesto/restrição são criados neste projeto via Edge Function `create-order` (JWT obrigatório). O pedido só é aceito se `profiles.device_id` estiver preenchido para o user autenticado. Cada order novo exige `orders.consulted_company_id` (FK para `consulted_companies`). Listagem no app: PostgREST `orders` filtrado por `user_id = auth.uid()` (qualquer `product_id`).
+
+### Consulted companies
+
+Tabela `consulted_companies`: histórico de CNPJs consultados por profile (`UNIQUE (profile_id, cnpj_digits)`). Colunas principais: `cnpj_digits`, `company_name`, `situacao`, `fantasia`, `metadata` (JSONB snapshot do `CnpjModel`), `last_consulted_at`.
+
+- RLS: SELECT / INSERT / UPDATE onde `auth.uid() = profile_id` (sem DELETE no client).
+- Upsert no app após lookup ReceitaWS (soft-fail) e de forma autoritativa em `create-order` antes do insert da order.
+- Home Consultar lista `consulted_companies` com embed `orders(...)` para tags / pills.
 
 Pagamentos: tabela `payments` vinculada a `profiles` (`profile_id`). Um payment pode cobrir vários orders (`orders.payment_id`). Providers: `revenuecat` (app Flutter via `PaymentsService`) e `pagarme_pix` (Edge PIX). Campos RC: `rc_id`, `recurrence` (monthly/annual), `is_active`, `platform` (ios/android).
 
@@ -49,15 +57,18 @@ Naming: tabelas/colunas/functions sempre inglês (`snake_case`) — ver skill Su
 
 | Function | Uso | JWT |
 |---|---|---|
-| `create-order` | Cria `orders` vinculados ao user autenticado (exige `profiles.device_id`) | on (default) |
+| `sync-profile` | Reconcile `profiles` por `device_id` (reclaim + coalesce null-safe) | on (default) |
+| `create-order` | Upsert `consulted_companies` + cria `orders` com FK (exige `profiles.device_id`) | on (default) |
 | `create-pix-order` | Cria/reusa cobrança PIX (Pagar.me); grava `payments` + `orders.payment_id` | on (default) |
 | `pagarme-webhook` | Eventos Pagar.me → `payments` + todos `orders` com aquele `payment_id` | **off** (`verify_jwt = false` no config; HMAC via `x-hub-signature`) |
 | `sync-payment-status` | Poll status da charge (fallback se webhook atrasar); Bearer service-role | on |
 | `send-marketing-emails` | Envio em massa Resend a partir do Storage bucket `marketing` | on |
 | `calculate-company-score` | Calcula e persiste score empresarial (cota via `plan_limits`) | on |
 | `mark-order-paid` | Confirma pedido premium + `payment_id`; rejeita se cota do plano esgotada | on |
+| `delete-account` | Anonimiza orders + deleta auth user | on |
 
 ```bash
+supabase functions deploy sync-profile
 supabase functions deploy create-order
 supabase functions deploy create-pix-order
 supabase functions deploy pagarme-webhook
@@ -65,6 +76,7 @@ supabase functions deploy sync-payment-status
 supabase functions deploy send-marketing-emails
 supabase functions deploy calculate-company-score
 supabase functions deploy mark-order-paid
+supabase functions deploy delete-account
 ```
 
 Webhook URL (Pagar.me):

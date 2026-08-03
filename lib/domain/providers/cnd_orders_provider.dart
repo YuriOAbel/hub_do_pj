@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_catalog_model.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
@@ -27,8 +28,14 @@ class CndOrders extends _$CndOrders {
     );
   }
 
-  Future<CndOrderModel> markOrderPaid(String orderId) async {
-    final order = await CndOrdersService.instance.markOrderPaid(orderId);
+  Future<CndOrderModel> markOrderPaid(
+    String orderId, {
+    String? paymentId,
+  }) async {
+    final order = await CndOrdersService.instance.markOrderPaid(
+      orderId,
+      paymentId: paymentId,
+    );
     await refresh();
     return order;
   }
@@ -42,4 +49,28 @@ class CndOrdersFilter extends _$CndOrdersFilter {
   void setFilter(CndOrderDisplayStatus? status) {
     state = status;
   }
+}
+
+const _activeOrderStatuses = {'em_analise', 'processando', 'concluido'};
+
+/// Latest active order per product kind for a CNPJ (digits).
+@riverpod
+Future<Map<String, CndOrderModel>> activeOrdersForCnpj(
+  Ref ref,
+  String cnpjDigits,
+) async {
+  final digits = cnpjDigits.replaceAll(RegExp(r'\D'), '');
+  final orders = await ref.watch(cndOrdersProvider.future);
+  final catalog = await ref.watch(cndCatalogProvider.future);
+
+  final result = <String, CndOrderModel>{};
+  for (final order in orders) {
+    if (!_activeOrderStatuses.contains(order.status)) continue;
+    final orderDigits = order.cnpj.replaceAll(RegExp(r'\D'), '');
+    if (orderDigits != digits) continue;
+    final kind = catalog.kindForProductId(order.productId);
+    if (result.containsKey(kind)) continue;
+    result[kind] = order;
+  }
+  return result;
 }

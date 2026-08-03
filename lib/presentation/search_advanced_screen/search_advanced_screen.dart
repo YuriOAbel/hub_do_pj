@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
+import 'package:consulta_cnpj_new/domain/models/company_offer_route_args.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/models/search_param.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnpj_search_provider.dart';
@@ -62,7 +63,11 @@ class _SearchAdvancedScreenState extends ConsumerState<SearchAdvancedScreen> {
             .read(cnpjSearchProvider.notifier)
             .searchByCnpj(first.cnpj!);
         if (mounted) {
-          Navigator.pushNamed(context, AppRoutes.result, arguments: result);
+          Navigator.pushNamed(
+            context,
+            AppRoutes.companyOffer,
+            arguments: CompanyOfferRouteArgs(cnpj: result),
+          );
         }
       }
     } on PlanLimitException catch (e) {

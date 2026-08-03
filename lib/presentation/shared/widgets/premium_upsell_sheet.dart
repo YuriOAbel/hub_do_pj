@@ -14,12 +14,14 @@ class PremiumUpsellSheet extends StatelessWidget {
     this.suggestedTier,
     this.limitMessage,
     this.suggestedPlanTitle,
+    this.allowConsumable = false,
   });
 
   final PaywallOrigin origin;
   final int? suggestedTier;
   final String? limitMessage;
   final String? suggestedPlanTitle;
+  final bool allowConsumable;
 
   /// Limit hit: open paywall first; paywall presents this sheet, then selects
   /// [suggestedTier] when the sheet closes.
@@ -31,6 +33,7 @@ class PremiumUpsellSheet extends StatelessWidget {
     int? suggestedTier,
     String? limitMessage,
     String? suggestedPlanTitle,
+    bool allowConsumable = false,
   }) {
     final isLimit =
         limitMessage != null || suggestedPlanTitle != null || suggestedTier != null;
@@ -54,7 +57,10 @@ class PremiumUpsellSheet extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (_) => PremiumUpsellSheet(origin: origin),
+      builder: (_) => PremiumUpsellSheet(
+        origin: origin,
+        allowConsumable: allowConsumable,
+      ),
     ).whenComplete(() {
       if (!context.mounted) return;
       openPaywall(context, args);
@@ -68,6 +74,7 @@ class PremiumUpsellSheet extends StatelessWidget {
     int? suggestedTier,
     String? limitMessage,
     String? suggestedPlanTitle,
+    bool allowConsumable = false,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -82,6 +89,7 @@ class PremiumUpsellSheet extends StatelessWidget {
         suggestedTier: suggestedTier,
         limitMessage: limitMessage,
         suggestedPlanTitle: suggestedPlanTitle,
+        allowConsumable: allowConsumable,
       ),
     );
   }
@@ -89,9 +97,18 @@ class PremiumUpsellSheet extends StatelessWidget {
   static String limitBody({
     required String? planTitle,
     String? limitMessage,
+    bool allowConsumable = false,
   }) {
     if (limitMessage != null && limitMessage.trim().isNotEmpty) {
       return limitMessage;
+    }
+    if (allowConsumable) {
+      if (planTitle != null && planTitle.trim().isNotEmpty) {
+        return 'Você atingiu o limite do plano para esta operação. '
+            'Assine o plano $planTitle ou faça a compra única deste pedido.';
+      }
+      return 'Você atingiu o limite do plano para esta operação. '
+          'Assine um plano superior ou faça a compra única deste pedido.';
     }
     if (planTitle != null && planTitle.trim().isNotEmpty) {
       return 'Você atingiu o limite desta operação. '
@@ -103,18 +120,28 @@ class PremiumUpsellSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLimit = limitMessage != null || suggestedPlanTitle != null;
-    final title = suggestedPlanTitle != null
-        ? 'Ative o plano $suggestedPlanTitle'
-        : isLimit
-            ? 'Limite atingido'
-            : 'Recurso Premium';
+    final isLimit = limitMessage != null ||
+        suggestedPlanTitle != null ||
+        allowConsumable;
+    final title = allowConsumable
+        ? 'Limite atingido'
+        : suggestedPlanTitle != null
+            ? 'Ative o plano $suggestedPlanTitle'
+            : isLimit
+                ? 'Limite atingido'
+                : 'Recurso Premium';
     final body = isLimit
         ? limitBody(
             planTitle: suggestedPlanTitle,
             limitMessage: limitMessage,
+            allowConsumable: allowConsumable,
           )
         : 'Assine o Premium para desbloquear este recurso sem limites.';
+    final ctaLabel = allowConsumable
+        ? 'Ver opções'
+        : suggestedPlanTitle != null
+            ? 'Ver plano'
+            : 'Ver planos';
 
     return Padding(
       padding: EdgeInsets.all(6.w),
@@ -143,7 +170,7 @@ class PremiumUpsellSheet extends StatelessWidget {
           CnpjPrimaryButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              suggestedPlanTitle != null ? 'Ver plano' : 'Ver planos',
+              ctaLabel,
               style: GoogleFonts.inter(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

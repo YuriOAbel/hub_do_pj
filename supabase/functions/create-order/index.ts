@@ -5,6 +5,7 @@ import {
   PRODUCT_SUGGESTED_TIER,
   countDistinctActiveCnpjsInPeriod,
   findActiveOrderForCnpj,
+  isConsumableRcProduct,
   onlyDigits,
 } from '../_shared/plan_limits.ts';
 
@@ -223,11 +224,15 @@ serve(async (req) => {
       );
     }
 
-    const planProductId =
+    const rawPlanProductId =
       typeof profile.plan_product_id === 'string' &&
         profile.plan_product_id.trim()
         ? profile.plan_product_id.trim()
         : 'free';
+    // Dirty profiles after one-shot RC purchase may store consumable product id.
+    const planProductId = isConsumableRcProduct(rawPlanProductId, null)
+      ? 'free'
+      : rawPlanProductId;
 
     const limitColumn = PRODUCT_LIMIT_COLUMN[product.id];
     // Free users create then open paywall — skip quota here.
@@ -287,6 +292,27 @@ serve(async (req) => {
       }
     }
 
+    const nowIso = new Date().toISOString();
+    const { data: consultedCompany, error: consultedError } = await admin
+      .from('consulted_companies')
+      .upsert(
+        {
+          profile_id: user.id,
+          cnpj_digits: cnpjDigits,
+          company_name: companyName,
+          last_consulted_at: nowIso,
+          updated_at: nowIso,
+        },
+        { onConflict: 'profile_id,cnpj_digits' },
+      )
+      .select('id')
+      .single();
+
+    if (consultedError || !consultedCompany?.id) {
+      console.error('create-order consulted_companies upsert:', consultedError);
+      return jsonResponse({ error: 'Erro ao vincular empresa consultada' }, 500);
+    }
+
     const insertPayload = {
       user_id: user.id,
       guest_email: guestEmail,
@@ -297,6 +323,7 @@ serve(async (req) => {
       cnpj: formatCnpj(cnpjDigits),
       company_name: companyName,
       address,
+      consulted_company_id: consultedCompany.id as string,
     };
 
     const { data: order, error: insertError } = await admin

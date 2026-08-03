@@ -83,12 +83,13 @@ class CndOrderDetailScreen extends ConsumerWidget {
   bool _hasPendingPayment(CndOrderModel order) =>
       order.status == 'em_analise' && order.paymentStatus != 'paid';
 
-  Future<void> _finishPayment(BuildContext context) {
+  Future<void> _finishPayment(BuildContext context, {String? productKind}) {
     return openPaywall(
       context,
       PaywallRouteArgs(
         origin: PaywallOrigin.cnd,
         pendingOrderId: order.id,
+        productKind: productKind,
       ),
     );
   }
@@ -190,7 +191,8 @@ class CndOrderDetailScreen extends ConsumerWidget {
                               ),
                               SizedBox(height: 1.5.h),
                               CnpjPrimaryButton(
-                                onPressed: () => _finishPayment(context),
+                                onPressed: () =>
+                                    _finishPayment(context, productKind: kind),
                                 child: Text(
                                   'Finalizar agora',
                                   style: GoogleFonts.inter(

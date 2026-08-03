@@ -4,6 +4,7 @@ import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
 import 'package:consulta_cnpj_new/services/cnd_orders_service.dart';
 import 'package:consulta_cnpj_new/services/cnpj_search_exception.dart';
 import 'package:consulta_cnpj_new/services/cnpj_search_service.dart';
+import 'package:consulta_cnpj_new/services/consulted_companies_service.dart';
 import 'package:cpf_cnpj_validator/cnpj_validator.dart';
 
 part 'cnd_request_provider.g.dart';
@@ -23,6 +24,7 @@ class CndCompanyLookup extends _$CndCompanyLookup {
     state = const AsyncLoading();
     try {
       final result = await CnpjSearchService.instance.getByCnpj(digits);
+      await ConsultedCompaniesService.instance.upsertFromCnpj(result);
       state = AsyncData(result);
       return result;
     } on CnpjSearchException catch (e, st) {

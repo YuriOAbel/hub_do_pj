@@ -4,6 +4,7 @@ import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
+/// Compact purple status pill (Pendente / Processando / Concluído / Cancelado).
 class CndStatusBadge extends StatelessWidget {
   const CndStatusBadge({super.key, required this.status});
 
@@ -11,41 +12,27 @@ class CndStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg, label) = switch (status) {
-      CndOrderDisplayStatus.pending => (
-          AppTheme.warning.withValues(alpha: 0.18),
-          AppTheme.warning,
-          'Pendente',
-        ),
-      CndOrderDisplayStatus.processing => (
-          Colors.blue.withValues(alpha: 0.14),
-          Colors.blue.shade800,
-          'Processando',
-        ),
-      CndOrderDisplayStatus.completed => (
-          AppTheme.success.withValues(alpha: 0.16),
-          AppTheme.success,
-          'Concluído',
-        ),
-      CndOrderDisplayStatus.cancelled => (
-          AppTheme.error.withValues(alpha: 0.14),
-          AppTheme.error,
-          'Cancelado',
-        ),
+    final label = switch (status) {
+      CndOrderDisplayStatus.pending => 'Pendente',
+      CndOrderDisplayStatus.processing => 'Processando',
+      CndOrderDisplayStatus.completed => 'Concluído',
+      CndOrderDisplayStatus.cancelled => 'Cancelado',
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: GoogleFonts.inter(
-          fontSize: AppTypography.fontBody,
-          fontWeight: FontWeight.w600,
-          color: fg,
+          fontSize: AppTypography.fontBody - 1,
+          fontWeight: FontWeight.w500,
+          color: AppTheme.primary,
         ),
       ),
     );

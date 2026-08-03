@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
-import 'package:consulta_cnpj_new/core/config/premium_access.dart';
-import 'package:consulta_cnpj_new/domain/models/home_entry_args.dart';
 import 'package:consulta_cnpj_new/domain/providers/app_init_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
@@ -46,13 +44,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           .requestNotificationPermission();
       if (!mounted) return;
 
+      // Warm premium cache; do not open paywall on app launch.
       await ref.read(premiumStatusProvider.future);
       if (!mounted) return;
-      Navigator.pushReplacementNamed(
-        context,
-        AppRoutes.home,
-        arguments: HomeEntryArgs(openPaywall: !isPremiumActive(ref)),
-      );
+      Navigator.pushReplacementNamed(context, AppRoutes.home);
     } catch (_) {
       if (!mounted) return;
       setState(() {

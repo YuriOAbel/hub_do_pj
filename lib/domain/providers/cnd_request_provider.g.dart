@@ -6,7 +6,7 @@ part of 'cnd_request_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$cndCompanyLookupHash() => r'1557df2ae8bd9e615d980da701fb05e7e6c7b2c6';
+String _$cndCompanyLookupHash() => r'414193b816c10163e2a1c5838fdbe77960a9128a';
 
 /// See also [CndCompanyLookup].
 @ProviderFor(CndCompanyLookup)

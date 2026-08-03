@@ -5,12 +5,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase/supabase.dart';
-import 'package:consulta_cnpj_new/core/utils/device_identifier.dart';
 import 'package:consulta_cnpj_new/services/free_user_limits_service.dart';
 import 'package:consulta_cnpj_new/services/home_tutorial_service.dart';
 import 'package:consulta_cnpj_new/services/local_cnpj_storage_service.dart';
 import 'package:consulta_cnpj_new/services/local_notification_inbox_service.dart';
 import 'package:consulta_cnpj_new/services/onboarding_service.dart';
+import 'package:consulta_cnpj_new/services/profile_sync_service.dart';
 import 'package:consulta_cnpj_new/services/revenuecat_service.dart';
 
 /// Anonymous Supabase auth with session restore (prefs + Keychain).
@@ -77,8 +77,14 @@ class SupabaseAuthService {
     );
     if (restoredFromPrefs) {
       _client = client;
-      _afterSessionReady();
-      return;
+      final valid = await _ensureLiveSession();
+      if (valid) {
+        await _afterSessionReady();
+        return;
+      }
+      // Dead JWT (e.g. user deleted after failed reclaim) — fall through.
+      await clearIdentity();
+      _client = client;
     }
 
     final restoredFromKeychain = await _tryRestoreSession(
@@ -87,8 +93,13 @@ class SupabaseAuthService {
     );
     if (restoredFromKeychain) {
       _client = client;
-      _afterSessionReady();
-      return;
+      final valid = await _ensureLiveSession();
+      if (valid) {
+        await _afterSessionReady();
+        return;
+      }
+      await clearIdentity();
+      _client = client;
     }
 
     try {
@@ -106,9 +117,24 @@ class SupabaseAuthService {
 
       await _persistSession(session);
       debugPrint('SupabaseAuthService: anon sign-in ok (user: $_userId)');
-      _afterSessionReady();
+      await _afterSessionReady();
     } catch (e) {
       debugPrint('SupabaseAuthService: anon sign-in failed: $e');
+    }
+  }
+
+  /// Returns false when stored tokens point at a deleted / invalid auth user.
+  Future<bool> _ensureLiveSession() async {
+    if (_client == null || !isAuthenticated) return false;
+    try {
+      final refreshed = await refreshSession();
+      if (refreshed && isAuthenticated) return true;
+
+      final userResponse = await _client!.auth.getUser();
+      return userResponse.user != null;
+    } catch (e) {
+      debugPrint('SupabaseAuthService: session invalid ($e)');
+      return false;
     }
   }
 
@@ -135,14 +161,41 @@ class SupabaseAuthService {
     }
   }
 
-  void _afterSessionReady() {
-    Future(() async {
-      await syncDeviceId();
-      final uid = _userId;
-      if (uid != null && uid.isNotEmpty) {
-        await RevenueCatService.instance.logIn(uid);
+  Future<void> _afterSessionReady() async {
+    await syncDeviceId();
+    final uid = _userId;
+    if (uid != null && uid.isNotEmpty) {
+      await RevenueCatService.instance.logIn(uid);
+    }
+  }
+
+  /// Switches local session to a reclaimed profile via one-shot password.
+  Future<bool> adoptSessionFromPassword({
+    required String email,
+    required String password,
+  }) async {
+    if (_client == null) return false;
+    try {
+      final response = await _client!.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      final session = response.session;
+      if (session == null) {
+        debugPrint('SupabaseAuthService: adoptSession — no session');
+        return false;
       }
-    });
+      _jwt = session.accessToken;
+      _userId = session.user.id;
+      await _persistSession(session);
+      debugPrint(
+        'SupabaseAuthService: adopted reclaimed session (user: $_userId)',
+      );
+      return true;
+    } catch (e) {
+      debugPrint('SupabaseAuthService.adoptSessionFromPassword: $e');
+      return false;
+    }
   }
 
   /// Ensures anon/session auth + `profiles.device_id` before order ops.
@@ -170,37 +223,16 @@ class SupabaseAuthService {
     }
   }
 
-  /// Writes OS device id to `profiles.device_id` under RLS.
+  /// Syncs profile via Edge `sync-profile` (device_id + optional local fields).
   /// Returns true when profile has a non-empty device_id afterwards.
   Future<bool> syncDeviceId() async {
     if (_client == null || _userId == null || !isAuthenticated) return false;
 
     try {
-      final deviceId = await DeviceIdentifier.getDeviceId();
-      if (deviceId == null || deviceId.isEmpty) {
-        debugPrint('SupabaseAuthService: device id unavailable');
-        return false;
-      }
-
-      // Upsert covers race where auth trigger profile row is not ready yet.
-      await _client!.from('profiles').upsert({
-        'id': _userId!,
-        'device_id': deviceId,
-      });
-
-      final row = await _client!
-          .from('profiles')
-          .select('device_id')
-          .eq('id', _userId!)
-          .maybeSingle();
-      final stored = row?['device_id'] as String?;
-      final ok = stored != null && stored.trim().isNotEmpty;
-      if (ok) {
-        debugPrint('SupabaseAuthService: device_id synced');
-      } else {
-        debugPrint('SupabaseAuthService: device_id missing after upsert');
-      }
-      return ok;
+      final result = await ProfileSyncService.instance.sync(
+        purpose: 'bootstrap',
+      );
+      return result.ok;
     } catch (e) {
       debugPrint('SupabaseAuthService: syncDeviceId failed: $e');
       return false;

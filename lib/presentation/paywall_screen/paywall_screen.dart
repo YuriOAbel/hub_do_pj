@@ -47,6 +47,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     FirebaseAnalyticsHelper.instance.logViewCart(
       origin: widget.args.origin.name,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(paywallPlansProvider.notifier).loadDefault();
+    });
   }
 
   void _maybeLogViewItemList() {
@@ -240,11 +244,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(paywallPlansProvider);
+    final waitingSubscription = state.mode != PaywallLoadMode.subscription ||
+        state.isLoading;
     _maybeShowLimitSheet(state);
     final selected = state.selectedPlan;
     final tier = selected?.tier ?? 1;
-    final showContent =
-        !state.isLoading && !(state.error != null && state.plans.isEmpty);
+    final showContent = !waitingSubscription &&
+        !(state.error != null && state.plans.isEmpty);
     if (showContent) {
       _maybeLogViewItemList();
     }
@@ -259,7 +265,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         backgroundColor: AppTheme.surface,
         body: AppScreenFade(
           child: AppAsyncFadeSwitcher(
-            child: state.isLoading
+            child: waitingSubscription
                 ? const AppAsyncLoading(key: ValueKey('paywall-loading'))
                 : state.error != null && state.plans.isEmpty
                 ? AppAsyncError(

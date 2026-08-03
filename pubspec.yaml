@@ -1,7 +1,7 @@
 name: consulta_cnpj_new
 description: Consulta CNPJ — cadastral lookup for Brazilian companies.
 publish_to: 'none'
-version: 4.0.6+56
+version: 4.0.9+59
 
 environment:
   sdk: ^3.10.4

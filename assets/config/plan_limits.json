@@ -48,6 +48,20 @@
     "monthlyCndPackageCnpjLimit": 10,
     "quotaPeriodMonths": 1
   },
+  "hub_pj_mensal_cp": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 2,
+    "monthlyProtestoCnpjLimit": 2,
+    "monthlyCndPackageCnpjLimit": 2,
+    "quotaPeriodMonths": 1
+  },
+  "hub_pj_mensal_cp:hub-pj-mensal-cp": {
+    "dailyCnpjSearchLimit": null,
+    "monthlyRestricaoCnpjLimit": 2,
+    "monthlyProtestoCnpjLimit": 2,
+    "monthlyCndPackageCnpjLimit": 2,
+    "quotaPeriodMonths": 1
+  },
   "app_access": {
     "dailyCnpjSearchLimit": null,
     "monthlyRestricaoCnpjLimit": 0,

@@ -1,3 +1,4 @@
+import 'package:cpf_cnpj_validator/cnpj_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,9 +20,11 @@ import 'package:consulta_cnpj_new/presentation/company_score_screen/widgets/comp
 import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/plan_cnpj_limit_specialist_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/services/cnpj_search_exception.dart';
+import 'package:consulta_cnpj_new/services/paywall/revenuecat_config.dart';
 import 'package:consulta_cnpj_new/services/share_app_service.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
@@ -50,7 +53,15 @@ class _CompanyScoreScreenState extends ConsumerState<CompanyScoreScreen> {
             initialResult: entry?.initialResult,
             startNewQuiz: entry?.startNewQuiz ?? false,
           );
+      _applyPrefillCnpj(entry?.prefillCnpj);
     });
+  }
+
+  void _applyPrefillCnpj(String? raw) {
+    if (raw == null) return;
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 14) return;
+    _cnpjController.text = CNPJValidator.format(digits);
   }
 
   @override
@@ -98,6 +109,11 @@ class _CompanyScoreScreenState extends ConsumerState<CompanyScoreScreen> {
       await _flow.lookupCompany(digits);
     } on PlanLimitException catch (e) {
       if (!mounted) return;
+      final planProductId = currentUserPlan(ref).planProductId;
+      if (RevenueCatConfig.isMonthlyCpProductId(planProductId)) {
+        await PlanCnpjLimitSpecialistSheet.show(context);
+        return;
+      }
       await PremiumUpsellSheet.show(
         context,
         PaywallOrigin.scoreLimit,

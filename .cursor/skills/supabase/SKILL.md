@@ -161,6 +161,7 @@ supabase functions deploy <function-name>
 Examples:
 
 ```bash
+supabase functions deploy sync-profile
 supabase functions deploy create-order
 supabase functions deploy create-pix-order
 supabase functions deploy pagarme-webhook

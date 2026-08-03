@@ -114,6 +114,17 @@ class OnboardingFlow extends _$OnboardingFlow {
     final occupationOther = draft.occupationOther.trim();
     final interests = draft.interests.map((e) => e.id).toList();
 
+    if (name.isEmpty ||
+        personType == null ||
+        personType.isEmpty ||
+        occupationId == null ||
+        occupationId.isEmpty ||
+        interests.isEmpty) {
+      throw StateError(
+        'Complete nome, tipo, ocupação e interesses antes de continuar.',
+      );
+    }
+
     await OnboardingService.instance.saveAnswers(
       name: name,
       personType: personType,

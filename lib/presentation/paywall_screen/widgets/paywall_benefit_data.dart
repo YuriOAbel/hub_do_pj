@@ -1,3 +1,5 @@
+import 'package:consulta_cnpj_new/services/paywall/revenuecat_config.dart';
+
 enum PaywallBenefitId {
   appAccess,
   compliance,
@@ -81,6 +83,49 @@ class PaywallBenefitData {
     final periodPhrase = isMonthlyPeriod(tier)
         ? 'Periodicidade: 1 vez ao mês.'
         : 'Periodicidade: a cada 3 meses.';
+    return _detailBullets(periodPhrase);
+  }
+
+  /// Consumable paywall: enable benefits by selected RC package id.
+  bool isEnabledForPackage(String packageId) {
+    if (RevenueCatConfig.isMonthlyCpProductId(packageId)) {
+      return true;
+    }
+    return switch (packageId) {
+      RevenueCatConfig.certidoesConsumablePackageId =>
+        id == PaywallBenefitId.compliance,
+      RevenueCatConfig.restricoesConsumablePackageId =>
+        id == PaywallBenefitId.restricao,
+      RevenueCatConfig.protestosConsumablePackageId =>
+        id == PaywallBenefitId.protesto,
+      _ => false,
+    };
+  }
+
+  String? periodPrefixForPackage(String packageId) {
+    if (id == PaywallBenefitId.appAccess) return null;
+    if (!isEnabledForPackage(packageId)) return null;
+    if (RevenueCatConfig.isMonthlyCpProductId(packageId)) return null;
+    return null;
+  }
+
+  String? periodHighlightForPackage(String packageId) {
+    if (id == PaywallBenefitId.appAccess) return null;
+    if (!isEnabledForPackage(packageId)) return null;
+    if (RevenueCatConfig.isMonthlyCpProductId(packageId)) {
+      return 'todo o mês';
+    }
+    return 'uma vez';
+  }
+
+  List<String> detailBulletsForPackage(String packageId) {
+    final periodPhrase = RevenueCatConfig.isMonthlyCpProductId(packageId)
+        ? 'Periodicidade: 1 vez ao mês.'
+        : 'Periodicidade: uma vez.';
+    return _detailBullets(periodPhrase);
+  }
+
+  List<String> _detailBullets(String periodPhrase) {
     switch (id) {
       case PaywallBenefitId.appAccess:
         return const [

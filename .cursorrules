@@ -92,6 +92,7 @@ flutter test test/release_readiness_test.dart
 
 # Supabase (Certidões PJ — see docs/SUPABASE.md)
 supabase link --project-ref kpkctuuzhbnqudemeudh
+supabase functions deploy sync-profile
 supabase functions deploy create-order
 supabase functions deploy create-pix-order
 supabase functions deploy pagarme-webhook

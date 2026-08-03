@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/core/utils/keyboard_utils.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
+import 'package:consulta_cnpj_new/domain/models/company_offer_route_args.dart';
 import 'package:consulta_cnpj_new/domain/providers/historic_provider.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_error.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/app_async_loading.dart';
@@ -53,7 +54,11 @@ class HomeHistoricTab extends ConsumerWidget {
     await FirebaseAnalyticsHelper.instance.logConsultouHistorico();
     if (!context.mounted) return;
     KeyboardUtils.dismiss(context);
-    await Navigator.pushNamed(context, AppRoutes.result, arguments: item);
+    await Navigator.pushNamed(
+      context,
+      AppRoutes.companyOffer,
+      arguments: CompanyOfferRouteArgs(cnpj: item),
+    );
     if (!context.mounted) return;
     KeyboardUtils.dismiss(context);
   }

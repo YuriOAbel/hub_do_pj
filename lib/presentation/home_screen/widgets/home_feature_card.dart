@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 import 'package:consulta_cnpj_new/core/utils/app_typography.dart';
+import 'package:consulta_cnpj_new/domain/models/cnd_order_model.dart';
+import 'package:consulta_cnpj_new/presentation/cnd_orders_screen/widgets/cnd_status_badge.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class HomeFeatureCard extends StatelessWidget {
@@ -14,6 +16,7 @@ class HomeFeatureCard extends StatelessWidget {
     this.toggleValue,
     this.onToggleChanged,
     this.actionLabel,
+    this.orderStatus,
   });
 
   final IconData icon;
@@ -23,6 +26,7 @@ class HomeFeatureCard extends StatelessWidget {
   final bool? toggleValue;
   final ValueChanged<bool>? onToggleChanged;
   final String? actionLabel;
+  final CndOrderDisplayStatus? orderStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +54,20 @@ class HomeFeatureCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 5.5.w, color: AppTheme.primary),
+              Row(
+                children: [
+                  Icon(icon, size: 5.5.w, color: AppTheme.primary),
+                  if (orderStatus != null) ...[
+                    SizedBox(width: 1.5.w),
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: CndStatusBadge(status: orderStatus!),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
               SizedBox(height: 1.h),
               Text(
                 title,

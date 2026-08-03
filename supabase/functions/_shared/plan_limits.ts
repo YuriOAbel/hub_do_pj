@@ -19,6 +19,31 @@ export const PRODUCT_SUGGESTED_TIER: Record<string, number> = {
   p01: 2,
 };
 
+/** RevenueCat one-shot packages that pay a single order without a plan upgrade. */
+export const CONSUMABLE_RC_PRODUCT_IDS = new Set([
+  'hub_pj_certidoes_app',
+  'hub_pj_restricoes_app',
+  'hub_pj_protestos_app',
+  'hub_pj_app_certidoes',
+]);
+
+export function isConsumableRcProduct(
+  rcProductId: string | null | undefined,
+  planId: string | null | undefined,
+): boolean {
+  const candidates = [rcProductId, planId]
+    .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+    .map((v) => v.trim());
+  for (const id of candidates) {
+    if (CONSUMABLE_RC_PRODUCT_IDS.has(id)) return true;
+    const colon = id.indexOf(':');
+    if (colon > 0 && CONSUMABLE_RC_PRODUCT_IDS.has(id.substring(0, colon))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function onlyDigits(value: string): string {
   return value.replace(/\D/g, '');
 }
@@ -63,6 +88,24 @@ export async function findActiveOrderForCnpj(
   return null;
 }
 
+function isConsumablePayment(payment: {
+  recurrence?: unknown;
+  rc_product_id?: unknown;
+  plan_id?: unknown;
+} | null | undefined): boolean {
+  if (!payment) return false;
+  if (payment.recurrence === 'one_time') return true;
+  return isConsumableRcProduct(
+    typeof payment.rc_product_id === 'string' ? payment.rc_product_id : null,
+    typeof payment.plan_id === 'string' ? payment.plan_id : null,
+  );
+}
+
+/**
+ * Distinct active CNPJs that consume subscription quota.
+ * Consumable-funded orders (one_time / RC consumable SKUs) do NOT count.
+ * Unpaid pending orders still count (occupy a slot until cancelled/paid).
+ */
 export async function countDistinctActiveCnpjsInPeriod(
   admin: SupabaseClient,
   userId: string,
@@ -73,7 +116,9 @@ export async function countDistinctActiveCnpjsInPeriod(
   const periodStart = periodStartIso(quotaPeriodMonths);
   let query = admin
     .from('orders')
-    .select('id, cnpj')
+    .select(
+      'id, cnpj, payment_id, payment_status, payments(recurrence, rc_product_id, plan_id)',
+    )
     .eq('user_id', userId)
     .eq('product_id', productId)
     .in('status', [...ACTIVE_ORDER_STATUSES])
@@ -91,6 +136,17 @@ export async function countDistinctActiveCnpjsInPeriod(
 
   const cnpjs = new Set<string>();
   for (const row of data ?? []) {
+    const paymentRaw = (row as Record<string, unknown>).payments;
+    const payment = (Array.isArray(paymentRaw) ? paymentRaw[0] : paymentRaw) as
+      | {
+        recurrence?: unknown;
+        rc_product_id?: unknown;
+        plan_id?: unknown;
+      }
+      | null
+      | undefined;
+    if (isConsumablePayment(payment)) continue;
+
     const digits = onlyDigits(String(row.cnpj ?? ''));
     if (digits.length === 14) cnpjs.add(digits);
   }

@@ -38,7 +38,7 @@ enum PaywallOrigin {
   scoreLimit,
 }
 
-/// Typed args for [AppRoutes.paywall].
+/// Typed args for [AppRoutes.paywall] / [AppRoutes.paywallConsumables].
 class PaywallRouteArgs {
   const PaywallRouteArgs({
     required this.origin,
@@ -47,6 +47,7 @@ class PaywallRouteArgs {
     this.limitMessage,
     this.suggestedPlanTitle,
     this.showLimitSheet = false,
+    this.productKind,
   });
 
   final PaywallOrigin origin;
@@ -62,6 +63,9 @@ class PaywallRouteArgs {
   /// When true, paywall opens the limit bottomsheet after plans load, then
   /// selects [suggestedTier] when the sheet closes.
   final bool showLimitSheet;
+
+  /// Emit kind for consumable paywall filter (`cnd` / `restricao` / `protesto`).
+  final String? productKind;
 }
 
 /// Runtime plan for the signed-in profile.
@@ -100,6 +104,7 @@ class PurchaseSyncResult {
     this.transactionId,
     this.price = 0,
     this.currencyCode = 'BRL',
+    this.paymentId,
   });
 
   final UserPlanState plan;
@@ -110,4 +115,7 @@ class PurchaseSyncResult {
 
   /// ISO 4217 from RevenueCat `StoreProduct.currencyCode` at purchase time.
   final String currencyCode;
+
+  /// Supabase `payments.id` for one-shot consumable purchases.
+  final String? paymentId;
 }

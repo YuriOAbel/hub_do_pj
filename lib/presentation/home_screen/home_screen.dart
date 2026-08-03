@@ -9,13 +9,12 @@ import 'package:consulta_cnpj_new/core/helpers/firebase_analytics_helper.dart';
 import 'package:consulta_cnpj_new/core/utils/cnpj_input_formatter.dart';
 import 'package:consulta_cnpj_new/core/utils/keyboard_utils.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_request_args.dart';
-import 'package:consulta_cnpj_new/domain/models/company_score_entry_args.dart';
+import 'package:consulta_cnpj_new/domain/models/company_offer_route_args.dart';
 import 'package:consulta_cnpj_new/domain/models/home_entry_args.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
-import 'package:consulta_cnpj_new/domain/models/result_route_args.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnpj_search_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/company_score_provider.dart';
-import 'package:consulta_cnpj_new/domain/providers/home_tutorial_provider.dart';
+import 'package:consulta_cnpj_new/domain/providers/consulted_companies_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/notification_list_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/onboarding_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/premium_status_provider.dart';
@@ -25,13 +24,11 @@ import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_favorite
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_header.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_historic_tab.dart';
 import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_status_section.dart';
-import 'package:consulta_cnpj_new/presentation/home_screen/widgets/home_tutorial_coach.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/app_screen_fade.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_search_field.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_svg_icon.dart';
-import 'package:consulta_cnpj_new/presentation/shared/widgets/open_paywall.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/premium_upsell_sheet.dart';
 import 'package:consulta_cnpj_new/routes/app_route_observer.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
@@ -52,14 +49,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   final _searchFocus = FocusNode();
   final _chipsKey = GlobalKey();
   final _searchKey = GlobalKey();
-  final _scoreKey = GlobalKey();
-  final _monitorKey = GlobalKey();
-  final _cndsKey = GlobalKey();
-  final _restricaoKey = GlobalKey();
-  final _protestoKey = GlobalKey();
+  final _consultedListKey = GlobalKey();
   HomeContentSection _section = HomeContentSection.consultar;
-  bool _tutorialStarted = false;
-  bool _appOpenPaywallShown = false;
   bool _pendingOnboardingResultHandled = false;
   bool _pendingOnboardingResultOpening = false;
 
@@ -67,16 +58,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
   void initState() {
     super.initState();
     _searchFocus.addListener(_onSearchFocusChanged);
-    if (widget.entry.openPaywall) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || _appOpenPaywallShown) return;
-        _appOpenPaywallShown = true;
-        openPaywall(
-          context,
-          const PaywallRouteArgs(origin: PaywallOrigin.appOpen),
-        );
-      });
-    }
   }
 
   @override
@@ -121,6 +102,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       if (!mounted) return;
       _dismissSearchKeyboard();
       ref.invalidate(companyScoresThisMonthProvider);
+      ref.invalidate(consultedCompaniesListProvider);
     });
   }
 
@@ -141,7 +123,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
       _dismissSearchKeyboard();
       setState(() {});
 
-      await _pushFromHome(AppRoutes.result, arguments: result);
+      await _pushFromHome(
+        AppRoutes.companyOffer,
+        arguments: CompanyOfferRouteArgs(cnpj: result),
+      );
     } on PlanLimitException catch (e) {
       if (!mounted) return;
       CnpjLoadingOverlay.hide();
@@ -185,37 +170,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
     }
   }
 
-  void _maybeStartTutorial() {
-    if (_tutorialStarted || !mounted) return;
-    _tutorialStarted = true;
-
-    if (_section != HomeContentSection.consultar) {
-      setState(() => _section = HomeContentSection.consultar);
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Future<void>.delayed(const Duration(milliseconds: 450));
-      if (!mounted) return;
-
-      HomeTutorialCoach.show(
-        context: context,
-        targets: HomeTutorialTargets(
-          chips: _chipsKey,
-          search: _searchKey,
-          score: _scoreKey,
-          monitor: _monitorKey,
-          cnds: _cndsKey,
-          restricao: _restricaoKey,
-          protesto: _protestoKey,
-        ),
-        onFinish: () {
-          ref.read(homeTutorialProvider.notifier).markSeen();
-          _maybeOpenPendingOnboardingResult();
-        },
-      );
-    });
-  }
-
   void _maybeOpenPendingOnboardingResult() {
     if (_pendingOnboardingResultHandled ||
         _pendingOnboardingResultOpening ||
@@ -238,8 +192,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
 
         CnpjLoadingOverlay.hide();
         await _pushFromHome(
-          AppRoutes.result,
-          arguments: ResultRouteArgs(cnpj: result, fromOnboarding: true),
+          AppRoutes.companyOffer,
+          arguments: CompanyOfferRouteArgs(
+            cnpj: result,
+            fromOnboarding: true,
+          ),
         );
       } on PlanLimitException catch (e) {
         if (!mounted) return;
@@ -272,16 +229,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
         ? banners.where((b) => b.key != 'premium_nav').toList()
         : banners;
 
-    final hasSeenTutorial = ref.watch(homeTutorialProvider).asData?.value;
-    if (hasSeenTutorial == false) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _maybeStartTutorial();
-      });
-    } else if (hasSeenTutorial == true) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _maybeOpenPendingOnboardingResult();
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeOpenPendingOnboardingResult();
+    });
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -403,27 +353,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with RouteAware {
               Expanded(
                 child: switch (_section) {
                   HomeContentSection.consultar => HomeStatusSection(
-                    scoreKey: _scoreKey,
-                    monitorKey: _monitorKey,
-                    cndsKey: _cndsKey,
-                    restricaoKey: _restricaoKey,
-                    protestoKey: _protestoKey,
-                    onScoreEmptyTap: () => _pushFromHome(
-                      AppRoutes.companyScore,
-                      arguments: const CompanyScoreEntryArgs(
-                        startNewQuiz: true,
-                      ),
-                    ),
-                    onScoreSingleTap: (result) => _pushFromHome(
-                      AppRoutes.companyScore,
-                      arguments: CompanyScoreEntryArgs(initialResult: result),
-                    ),
-                    onScoreMultiTap: () =>
-                        _pushFromHome(AppRoutes.companyScoreList),
-                    onMonitorTap: () => _openNotAvailable('monitorar'),
-                    onCndTap: () => _openRequest('cnd'),
-                    onRestricaoTap: () => _openRequest('restricao'),
-                    onProtestoTap: () => _openRequest('protesto'),
+                    listKey: _consultedListKey,
                   ),
                   HomeContentSection.historico => const HomeHistoricTab(),
                   HomeContentSection.favoritos => const HomeFavoritesTab(),

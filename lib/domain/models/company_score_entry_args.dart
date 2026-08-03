@@ -5,8 +5,12 @@ class CompanyScoreEntryArgs {
   const CompanyScoreEntryArgs({
     this.initialResult,
     this.startNewQuiz = false,
+    this.prefillCnpj,
   });
 
   final CompanyScoreResult? initialResult;
   final bool startNewQuiz;
+
+  /// Digits or formatted CNPJ to prefill the quiz CNPJ field.
+  final String? prefillCnpj;
 }

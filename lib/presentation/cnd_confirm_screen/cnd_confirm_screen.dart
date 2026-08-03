@@ -10,15 +10,18 @@ import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnd_orders_provider.dart';
 import 'package:consulta_cnpj_new/domain/providers/cnd_request_provider.dart';
+import 'package:consulta_cnpj_new/domain/providers/consulted_companies_provider.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/widgets/active_order_exists_sheet.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/widgets/cnd_confirm_info_block.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/widgets/cnd_email_disclaimer.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_loading_overlay.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/cnpj_primary_button.dart';
 import 'package:consulta_cnpj_new/presentation/shared/widgets/open_paywall.dart';
+import 'package:consulta_cnpj_new/presentation/shared/widgets/plan_cnpj_limit_specialist_sheet.dart';
 import 'package:consulta_cnpj_new/routes/app_routes.dart';
 import 'package:consulta_cnpj_new/services/cnd_orders_service.dart';
 import 'package:consulta_cnpj_new/services/free_user_limits_service.dart';
+import 'package:consulta_cnpj_new/services/paywall/revenuecat_config.dart';
 import 'package:consulta_cnpj_new/theme/app_theme.dart';
 
 class CndConfirmScreen extends ConsumerWidget {
@@ -48,6 +51,8 @@ class CndConfirmScreen extends ConsumerWidget {
     try {
       final plan = currentUserPlan(ref);
       final cnpjDigits = (args.cnpj.cnpj ?? '').replaceAll(RegExp(r'\D'), '');
+      final consumableExperiment =
+          RevenueCatConfig.useConsumablePaywallExperiment;
 
       final existing = await PlanLimitsService.instance.findActiveOrder(
         productKind: args.productKind,
@@ -63,6 +68,9 @@ class CndConfirmScreen extends ConsumerWidget {
         return;
       }
 
+      var needsPaywall = !isPremiumActive(ref);
+      var showLimitSheet = false;
+
       if (isPremiumActive(ref)) {
         final canEmit = await PlanLimitsService.instance.canEmitOrder(
           planProductId: plan.planProductId,
@@ -70,28 +78,43 @@ class CndConfirmScreen extends ConsumerWidget {
           cnpj: cnpjDigits,
         );
         if (!canEmit) {
-          if (!context.mounted) {
+          if (RevenueCatConfig.isMonthlyCpProductId(plan.planProductId)) {
+            if (!context.mounted) {
+              CnpjLoadingOverlay.hide();
+              return;
+            }
             CnpjLoadingOverlay.hide();
+            await PlanCnpjLimitSpecialistSheet.show(context);
             return;
           }
-          CnpjLoadingOverlay.hide();
-          final suggestedTier =
-              await PlanLimitsService.instance.suggestedTierForEmit(
-            args.productKind,
-          );
-          if (!context.mounted) {
+          if (!consumableExperiment) {
+            if (!context.mounted) {
+              CnpjLoadingOverlay.hide();
+              return;
+            }
             CnpjLoadingOverlay.hide();
+            final suggestedTier =
+                await PlanLimitsService.instance.suggestedTierForEmit(
+              args.productKind,
+            );
+            if (!context.mounted) {
+              CnpjLoadingOverlay.hide();
+              return;
+            }
+            await openPaywall(
+              context,
+              PaywallRouteArgs(
+                origin: PaywallOrigin.cnd,
+                suggestedTier: suggestedTier,
+                showLimitSheet: true,
+                productKind: args.productKind,
+              ),
+            );
             return;
           }
-          await openPaywall(
-            context,
-            PaywallRouteArgs(
-              origin: PaywallOrigin.cnd,
-              suggestedTier: suggestedTier,
-              showLimitSheet: true,
-            ),
-          );
-          return;
+          // Consumable paywall: create unpaid order then open paywall.
+          needsPaywall = true;
+          showLimitSheet = true;
         }
       }
 
@@ -102,12 +125,13 @@ class CndConfirmScreen extends ConsumerWidget {
             productKind: args.productKind,
           );
       ref.invalidate(cndOrdersProvider);
+      ref.invalidate(consultedCompaniesListProvider);
       if (!context.mounted) {
         CnpjLoadingOverlay.hide();
         return;
       }
 
-      if (isPremiumActive(ref)) {
+      if (!needsPaywall && isPremiumActive(ref)) {
         try {
           final paid = await ref
               .read(cndOrdersProvider.notifier)
@@ -130,6 +154,10 @@ class CndConfirmScreen extends ConsumerWidget {
             return;
           }
           CnpjLoadingOverlay.hide();
+          if (RevenueCatConfig.isMonthlyCpProductId(plan.planProductId)) {
+            await PlanCnpjLimitSpecialistSheet.show(context);
+            return;
+          }
           final suggestedTier =
               await PlanLimitsService.instance.suggestedTierForEmit(
             args.productKind,
@@ -145,6 +173,7 @@ class CndConfirmScreen extends ConsumerWidget {
               pendingOrderId: order.id,
               suggestedTier: suggestedTier,
               showLimitSheet: true,
+              productKind: args.productKind,
             ),
           );
         }
@@ -152,11 +181,20 @@ class CndConfirmScreen extends ConsumerWidget {
       }
 
       CnpjLoadingOverlay.hide();
+      final suggestedTier = showLimitSheet
+          ? await PlanLimitsService.instance.suggestedTierForEmit(
+              args.productKind,
+            )
+          : null;
+      if (!context.mounted) return;
       await openPaywall(
         context,
         PaywallRouteArgs(
           origin: PaywallOrigin.cnd,
           pendingOrderId: order.id,
+          productKind: args.productKind,
+          suggestedTier: suggestedTier,
+          showLimitSheet: showLimitSheet,
         ),
       );
     } on ActiveOrderExistsException catch (e) {
@@ -166,6 +204,11 @@ class CndConfirmScreen extends ConsumerWidget {
     } on PlanLimitReachedException catch (_) {
       CnpjLoadingOverlay.hide();
       if (!context.mounted) return;
+      final planProductId = currentUserPlan(ref).planProductId;
+      if (RevenueCatConfig.isMonthlyCpProductId(planProductId)) {
+        await PlanCnpjLimitSpecialistSheet.show(context);
+        return;
+      }
       final suggestedTier =
           await PlanLimitsService.instance.suggestedTierForEmit(
         args.productKind,
@@ -177,6 +220,7 @@ class CndConfirmScreen extends ConsumerWidget {
           origin: PaywallOrigin.cnd,
           suggestedTier: suggestedTier,
           showLimitSheet: true,
+          productKind: args.productKind,
         ),
       );
     } catch (e) {

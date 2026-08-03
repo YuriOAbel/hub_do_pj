@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:consulta_cnpj_new/domain/models/cnd_request_args.dart';
 import 'package:consulta_cnpj_new/domain/models/cnpj_model.dart';
+import 'package:consulta_cnpj_new/domain/models/company_offer_route_args.dart';
 import 'package:consulta_cnpj_new/domain/models/company_score_entry_args.dart';
 import 'package:consulta_cnpj_new/domain/models/home_entry_args.dart';
 import 'package:consulta_cnpj_new/domain/models/plan_model.dart';
@@ -11,6 +12,7 @@ import 'package:consulta_cnpj_new/presentation/cnd_confirm_screen/cnd_confirm_sc
 import 'package:consulta_cnpj_new/presentation/cnd_order_detail_screen/cnd_order_detail_screen.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_orders_screen/cnd_orders_screen.dart';
 import 'package:consulta_cnpj_new/presentation/cnd_request_screen/cnd_request_screen.dart';
+import 'package:consulta_cnpj_new/presentation/company_offer_screen/company_offer_screen.dart';
 import 'package:consulta_cnpj_new/presentation/company_score_list_screen/company_score_list_screen.dart';
 import 'package:consulta_cnpj_new/presentation/company_score_screen/company_score_screen.dart';
 import 'package:consulta_cnpj_new/presentation/evaluation_screen/evaluation_screen.dart';
@@ -20,7 +22,9 @@ import 'package:consulta_cnpj_new/domain/models/app_notification_model.dart';
 import 'package:consulta_cnpj_new/presentation/notification_center_screen/notification_center_screen.dart';
 import 'package:consulta_cnpj_new/presentation/notification_content_screen/notification_content_screen.dart';
 import 'package:consulta_cnpj_new/presentation/onboarding_screen/onboarding_screen.dart';
+import 'package:consulta_cnpj_new/presentation/paywall_consumable_screen/paywall_consumable_screen.dart';
 import 'package:consulta_cnpj_new/presentation/paywall_screen/paywall_screen.dart';
+import 'package:consulta_cnpj_new/services/paywall/revenuecat_config.dart';
 import 'package:consulta_cnpj_new/presentation/profile_edit_screen/profile_edit_screen.dart';
 import 'package:consulta_cnpj_new/presentation/refer_friend_screen/refer_friend_screen.dart';
 import 'package:consulta_cnpj_new/presentation/result_screen/result_screen.dart';
@@ -34,9 +38,11 @@ class AppRoutes {
   static const home = '/home';
   static const onboarding = '/onboarding';
   static const result = '/result';
+  static const companyOffer = '/company-offer';
   static const searchAdvanced = '/search-advanced';
   static const searchAdvancedFilter = '/search-advanced/filter';
   static const paywall = '/paywall';
+  static const paywallConsumables = '/paywall-consumables';
   static const calculator = '/calculator';
   static const referFriend = '/refer-friend';
   static const evaluation = '/evaluation';
@@ -63,6 +69,17 @@ class AppRoutes {
         return _page(HomeScreen(entry: homeArgs), settings);
       case onboarding:
         return _page(const OnboardingScreen(), settings);
+      case companyOffer:
+        final offerArgs = settings.arguments;
+        if (offerArgs is CompanyOfferRouteArgs) {
+          return _page(CompanyOfferScreen(args: offerArgs), settings);
+        }
+        return _page(
+          CompanyOfferScreen(
+            args: CompanyOfferRouteArgs(cnpj: offerArgs as CnpjModel),
+          ),
+          settings,
+        );
       case result:
         final args = settings.arguments;
         if (args is ResultRouteArgs) {
@@ -92,6 +109,20 @@ class AppRoutes {
           _ => const PaywallRouteArgs(origin: PaywallOrigin.home),
         };
         return _page(PaywallScreen(args: args), settings);
+      case paywallConsumables:
+        final raw = settings.arguments;
+        final consumableArgs = switch (raw) {
+          PaywallRouteArgs a => a,
+          PaywallOrigin o => PaywallRouteArgs(origin: o),
+          _ => const PaywallRouteArgs(origin: PaywallOrigin.cnd),
+        };
+        if (!RevenueCatConfig.useConsumablePaywallExperiment) {
+          return _page(PaywallScreen(args: consumableArgs), settings);
+        }
+        return _page(
+          PaywallConsumableScreen(args: consumableArgs),
+          settings,
+        );
       case calculator:
         return _page(const CalculatorScreen(), settings);
       case referFriend:
