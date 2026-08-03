@@ -66,6 +66,7 @@ Naming: tabelas/colunas/functions sempre inglês (`snake_case`) — ver skill Su
 | `calculate-company-score` | Calcula e persiste score empresarial (cota via `plan_limits`) | on |
 | `mark-order-paid` | Confirma pedido premium + `payment_id`; rejeita se cota do plano esgotada | on |
 | `delete-account` | Anonimiza orders + deleta auth user | on |
+| `cleanup-abandoned-profiles` | Remove abandonos de onboarding (sem nome/`onboarded_at`; deleta auth user → CASCADE). Bearer service-role | on |
 
 ```bash
 supabase functions deploy sync-profile
@@ -77,7 +78,20 @@ supabase functions deploy send-marketing-emails
 supabase functions deploy calculate-company-score
 supabase functions deploy mark-order-paid
 supabase functions deploy delete-account
+supabase functions deploy cleanup-abandoned-profiles
 ```
+
+Limpeza semanal (manual) — remove da tabela (delete auth → CASCADE profile):
+
+```bash
+curl -sS -X POST "$SUPABASE_URL/functions/v1/cleanup-abandoned-profiles" \
+  -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"min_age_hours": 0}'
+# dry run: -d '{"dry_run": true, "min_age_hours": 0}'
+```
+
+Critério: sem `name`, sem `onboarded_at`, `plan_product_id=free`, sem `payments`/`orders`. Ativos e soft-deleted.
 
 Webhook URL (Pagar.me):
 
